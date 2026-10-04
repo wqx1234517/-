@@ -1,0 +1,590 @@
+/* ---------- 全局基础 ---------- */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  /* 系统自带字体优先，中文用微软雅黑，加载更快也更好看 */
+  font-family: -apple-system, "Microsoft YaHei", sans-serif;
+  background: linear-gradient(135deg, #eef2ff 0%, #fdf2f8 100%);
+  color: #2c2c2a;
+  /* 让整个界面在屏幕正中间 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+#app {
+  width: 100%;
+  max-width: 480px;   /* 手机上占满，电脑上最多 480 宽，像微信一样的窄条 */
+  height: 100vh;      /* 手机上铺满整屏 */
+  background: #f7f8fc;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 屏幕宽度大于 600（电脑）时，做成一张居中的卡片，看起来更精致 */
+@media (min-width: 600px) {
+  #app {
+    height: 720px;
+    max-height: 90vh;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(90, 100, 140, 0.18);
+  }
+}
+
+/* ---------- 通用控件 ---------- */
+.input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid #e4e7f0;
+  border-radius: 14px;
+  font-size: 15px;
+  outline: none;
+  background: #fff;
+}
+
+.input:focus {
+  border-color: #5b8cff;
+}
+
+.btn {
+  padding: 11px 18px;
+  border: none;
+  border-radius: 14px;
+  background: #5b8cff;
+  color: #fff;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.empty {
+  text-align: center;
+  color: #a8adbb;
+  font-size: 13px;
+  padding: 20px 0;
+}
+
+/* ---------- 第一屏：房间列表 ---------- */
+.home {
+  padding: 28px 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.sub {
+  text-align: center;
+  color: #8b90a0;
+  font-size: 13px;
+  margin: 8px 0 22px;
+}
+
+/* 登录/注册那屏：标题和"退出登录"并排 */
+.home-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+/* 右上角那一排小按钮（提示音开关、退出登录） */
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sound-toggle {
+  font-size: 17px;
+  cursor: pointer;
+}
+
+.logout {
+  font-size: 13px;
+  color: #8b90a0;
+  cursor: pointer;
+}
+
+/* 未读消息的小红点 */
+.unread-badge {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: #e24b4a;
+  color: #fff;
+  font-size: 12px;
+  line-height: 20px;
+  text-align: center;
+  margin-right: 6px;
+}
+
+.logout:active {
+  color: #5b8cff;
+}
+
+/* 占满一整行的按钮，登录/注册用 */
+.block-btn {
+  width: 100%;
+  margin-top: 14px;
+}
+
+/* 登录失败时的红色提示 */
+.error-text {
+  color: #e24b4a;
+  font-size: 13px;
+  margin-top: 12px;
+}
+
+/* "还没有账号？去注册" 这一行 */
+.switch-line {
+  text-align: center;
+  font-size: 13px;
+  color: #5b8cff;
+  margin-top: 16px;
+  cursor: pointer;
+}
+
+/* 头像选择区 */
+.avatar-picker {
+  margin: 16px 0;
+}
+
+.picker-title {
+  font-size: 13px;
+  color: #8b90a0;
+}
+
+.avatar-grid {
+  display: flex;
+  flex-wrap: wrap;   /* 一行放不下自动换行，手机上也不会挤成一团 */
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.avatar-option {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  cursor: pointer;
+  border: 2px solid transparent;   /* 默认透明边框，选中时才上色，避免位置跳动 */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* 当前选中的头像：蓝框 + 淡蓝底 */
+.avatar-option.active {
+  border-color: #5b8cff;
+  background: #eef3ff;
+}
+
+/* 聊天里的头像：如果是表情符号，就用白底细边，表情本身已经够花哨了 */
+.avatar.emoji {
+  font-size: 20px;
+  border: 1px solid #eef0f5;
+}
+
+.room-list {
+  margin: 18px 0;
+}
+
+.room-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background: #fff;
+  border-radius: 14px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.room-item:active {
+  background: #f2f4fa;
+}
+
+.room-icon {
+  font-size: 18px;
+}
+
+.room-main {
+  flex: 1;   /* 占满中间，把箭头挤到最右边 */
+}
+
+.room-name {
+  font-size: 15px;
+}
+
+/* 房间名下面那行小字：邀请码。房间可以重名，靠这个区分 */
+.room-code {
+  font-size: 11px;
+  color: #a8adbb;
+  margin-top: 3px;
+}
+
+.room-arrow {
+  color: #c3c7d4;
+  font-size: 20px;
+}
+
+.new-room {
+  display: flex;
+  gap: 8px;
+}
+
+.new-room .input {
+  flex: 1;
+}
+
+/* ---------- 第二屏：聊天界面 ---------- */
+.chat {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  /* 加这句是为了让邀请面板能盖在这个聊天界面上面
+     （面板用的是绝对定位，它会相对最近一个有定位的父元素来摆位置） */
+  position: relative;
+}
+
+.chat-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: #fff;
+  border-bottom: 1px solid #eef0f5;
+}
+
+.back {
+  border: none;
+  background: #f2f4fa;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  font-size: 20px;
+  line-height: 1;
+  color: #6b7080;
+  cursor: pointer;
+}
+
+.header-info {
+  flex: 1;
+}
+
+.header-name {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.header-state {
+  font-size: 12px;
+  color: #8b90a0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 2px;
+}
+
+/* 连接状态的小圆点：绿=已连接，灰=断开 */
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.dot.on { background: #31c48d; }
+.dot.off { background: #c9ccd4; }
+
+.header-me {
+  font-size: 13px;
+  color: #8b90a0;
+  background: #f2f4fa;
+  padding: 4px 10px;
+  border-radius: 10px;
+}
+
+/* 消息区：占满中间剩余空间，消息多了可以滚动 */
+.msg-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 14px;
+}
+
+.msg-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  align-items: flex-start;
+  animation: pop 0.22s ease-out;   /* 新消息冒出来的小动画 */
+}
+
+/* 自己发的消息：整行反过来排，头像跑到右边 */
+.msg-row.mine {
+  flex-direction: row-reverse;
+}
+
+@keyframes pop {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+.avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;   /* 不允许被挤扁 */
+}
+
+.bubble-wrap {
+  max-width: 74%;
+}
+
+.msg-row.mine .bubble-wrap {
+  text-align: right;   /* 自己发的，昵称和时间靠右 */
+}
+
+.sender {
+  font-size: 12px;
+  color: #9aa0b0;
+  margin: 0 4px 4px;
+}
+
+.bubble {
+  display: inline-block;
+  padding: 9px 13px;
+  border-radius: 16px;
+  background: #fff;
+  font-size: 15px;
+  line-height: 1.5;
+  text-align: left;
+  word-break: break-word;   /* 长句子自动换行，不会撑破气泡 */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* 自己的气泡用蓝色，跟别人的白气泡区分开 */
+.msg-row.mine .bubble {
+  background: #5b8cff;
+  color: #fff;
+}
+
+.time {
+  font-size: 11px;
+  color: #b3b8c6;
+  margin: 4px 4px 0;
+}
+
+/* 被撤回的消息：灰色斜体，跟正常内容明显区分开 */
+.recalled-text {
+  color: #a8adbb;
+  font-style: italic;
+}
+
+/* 自己消息下面的"已读/未读" */
+.read-flag {
+  margin-left: 6px;
+  color: #a8adbb;
+}
+
+/* "撤回"两个小字，点一下就能撤。颜色淡一点，不抢消息的风头 */
+.recall-link {
+  margin-left: 8px;
+  color: #b9bed0;
+  cursor: pointer;
+}
+
+.recall-link:active {
+  color: #e24b4a;
+}
+
+/* 聊天页右上角的"邀请"按钮 */
+.invite-btn {
+  border: none;
+  background: #eef3ff;
+  color: #5b8cff;
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  margin-right: 6px;
+}
+
+/* 解散按钮：只有房主看得到，用红色跟"邀请"区分开 */
+.dismiss-btn {
+  border: none;
+  background: #fdeeee;
+  color: #e24b4a;
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  margin-right: 6px;
+}
+
+/* 退群按钮：普通成员看到的那个，用中性色，跟红色的"解散"区分开 */
+.leave-btn {
+  border: none;
+  background: #f1efe8;
+  color: #6b7080;
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  margin-right: 6px;
+}
+
+/* 邀请面板：一层半透明遮罩，中间放一张卡片 */
+.invite-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(30, 34, 50, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.invite-card {
+  width: 100%;
+  background: #fff;
+  border-radius: 18px;
+  padding: 22px 18px;
+  text-align: center;
+}
+
+.invite-card h3 {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.invite-tip {
+  font-size: 12px;
+  color: #8b90a0;
+  margin: 8px 0 16px;
+}
+
+/* 邀请码：大字、拉开间距，方便念给别人听 */
+.invite-code {
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: 6px;
+  color: #5b8cff;
+  background: #f4f7ff;
+  border-radius: 14px;
+  padding: 14px 0;
+  margin-bottom: 12px;
+}
+
+.invite-link {
+  font-size: 12px;
+  color: #8b90a0;
+  background: #f7f8fc;
+  border-radius: 10px;
+  padding: 10px;
+  word-break: break-all;   /* 链接太长，允许从中间断开换行 */
+  margin-bottom: 14px;
+}
+
+.copy-tip {
+  font-size: 12px;
+  color: #4ecb8f;
+  margin-top: 10px;
+}
+
+/* 次要按钮：白底描边，用来做"关闭"这种不那么重要的操作 */
+.ghost-btn {
+  background: #fff;
+  color: #8b90a0;
+  border: 1px solid #e4e7f0;
+  width: 100%;
+  margin-top: 10px;
+}
+
+/* "某某正在输入"提示条。高度写死，避免出现/消失时把消息区顶得一跳一跳 */
+.typing-bar {
+  height: 22px;
+  padding: 0 16px;
+  font-size: 12px;
+  color: #8b90a0;
+  background: #f7f8fc;
+  display: flex;
+  align-items: center;
+}
+
+/* 三个小点轮流闪，看起来像在打字 */
+/* 提示文字：用主色调 + 淡入动画，让它更容易被注意到 */
+.typing-text {
+  color: #5b8cff;
+  animation: fadein 0.2s ease-out;
+}
+
+@keyframes fadein {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: none; }
+}
+
+.typing-bar i {
+  font-style: normal;
+  animation: blink 1.2s infinite;
+}
+
+.typing-bar i:nth-child(2) { animation-delay: 0.2s; }
+.typing-bar i:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes blink {
+  0%, 60%, 100% { opacity: 0.25; }
+  30% { opacity: 1; }
+}
+
+/* 底部输入栏 */
+.input-bar {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #fff;
+  border-top: 1px solid #eef0f5;
+}
+
+.chat-input {
+  flex: 1;
+}
+
+.send {
+  border: none;
+  border-radius: 14px;
+  padding: 0 20px;
+  background: #5b8cff;
+  color: #fff;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.send:active {
+  transform: scale(0.97);
+}

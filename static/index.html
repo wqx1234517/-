@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <!-- 这行让手机上按屏幕真实宽度显示，不会被缩放成"缩小版电脑网页" -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>轻量聊天室</title>
+  <!-- 文件名后面加 ?v=12 是"版本号"：改了代码就把数字加一，
+       浏览器会当成新文件重新下载，手机上不用辛苦清缓存也会更新 -->
+  <link rel="stylesheet" href="/style.css?v=12">
+</head>
+<body>
+
+<!-- v-if / v-for / @click 这些都是 Vue 的写法，具体含义看 app.js 里的注释 -->
+<div id="app">
+
+  <!-- ============ 第 0 屏：还没登录，先显示登录/注册 ============ -->
+  <div v-if="!token" class="home">
+    <h1 class="title">轻量聊天室</h1>
+    <p class="sub">{{ isRegister ? '注册一个账号就能开始聊' : '登录后就能进入房间' }}</p>
+
+    <input v-model="loginName" class="input" placeholder="用户名" maxlength="12">
+    <input v-model="loginPwd" class="input" type="password" placeholder="密码"
+           style="margin-top: 10px" @keyup.enter="submit">
+
+    <!-- 注册时才让人挑头像，登录的话用账号里存好的那个 -->
+    <div class="avatar-picker" v-if="isRegister">
+      <span class="picker-title">选个头像</span>
+      <div class="avatar-grid">
+        <span v-for="e in avatarList" :key="e"
+              class="avatar-option" :class="{ active: myAvatar === e }"
+              @click="pickAvatar(e)">{{ e }}</span>
+      </div>
+    </div>
+
+    <!-- 出错时显示后端返回的那句话 -->
+    <p v-if="loginError" class="error-text">{{ loginError }}</p>
+
+    <button class="btn block-btn" @click="submit">{{ isRegister ? '注册并进入' : '登录' }}</button>
+
+    <p class="switch-line">
+      <span @click="switchMode">
+        {{ isRegister ? '已经有账号了？去登录' : '还没有账号？去注册' }}
+      </span>
+    </p>
+  </div>
+
+  <!-- ============ 第一屏：登录了但还没进房间，显示房间列表 ============ -->
+  <div v-else-if="!currentRoom" class="home">
+    <div class="home-top">
+      <h1 class="title">轻量聊天室</h1>
+      <div class="top-actions">
+        <!-- 提示音开关：🔔 开着，🔕 关着 -->
+        <span class="sound-toggle" @click="toggleSound">{{ soundOn ? '🔔' : '🔕' }}</span>
+        <span class="logout" @click="logout">退出登录</span>
+      </div>
+    </div>
+    <p class="sub">{{ myAvatar }} {{ myName }}，挑个房间就能聊</p>
+
+    <div class="room-list">
+      <!-- 房间可以重名，所以列表里把邀请码也显示出来，方便分清楚哪个是哪个 -->
+      <div v-for="room in rooms" :key="room.id" class="room-item" @click="enterRoom(room)">
+        <span class="room-icon">💬</span>
+        <div class="room-main">
+          <div class="room-name">{{ room.name }}</div>
+          <div class="room-code">邀请码 {{ room.invite_code }}</div>
+        </div>
+        <!-- 有没看过的消息就显示红点，数字是没看的条数 -->
+        <span v-if="room.unread" class="unread-badge">{{ room.unread > 99 ? '99+' : room.unread }}</span>
+        <span class="room-arrow">›</span>
+      </div>
+      <p v-if="rooms.length === 0" class="empty">还没有房间，下面建一个吧</p>
+    </div>
+
+    <!-- 别人把邀请码发给你，在这里输进去就能进他那个房间 -->
+    <div class="new-room">
+      <!-- 这里既可以填 6 位邀请码，也可以直接把整条邀请链接粘进来
+           （maxlength 放宽就是为了让粘贴长链接时不会被截断） -->
+      <input v-model="joinCode" class="input" placeholder="邀请码或邀请链接" @keyup.enter="joinByInput">
+      <button class="btn" @click="joinByInput">加入</button>
+    </div>
+
+    <div class="new-room">
+      <input v-model="newRoomName" class="input" placeholder="新房间名字" maxlength="12" @keyup.enter="createRoom">
+      <button class="btn" @click="createRoom">新建</button>
+    </div>
+  </div>
+
+  <!-- ============ 第二屏：进了房间之后，显示聊天界面 ============ -->
+  <div v-else class="chat">
+
+    <div class="chat-header">
+      <button class="back" @click="leaveRoom">‹</button>
+      <div class="header-info">
+        <div class="header-name">{{ currentRoom.name }}</div>
+        <div class="header-state">
+          <span class="dot" :class="connected ? 'on' : 'off'"></span>
+          <!-- 连上之后，这里显示房间里当前的在线人数 -->
+          {{ connected ? onlineCount + ' 人在房间里' : '连接中...' }}
+        </div>
+      </div>
+      <button class="invite-btn" @click="showInvite = true">邀请</button>
+      <!-- 两个按钮二选一：房主看到"解散"，普通成员看到"退群" -->
+      <button v-if="currentRoom.created_by === myName" class="dismiss-btn" @click="dismissRoom">解散</button>
+      <button v-else class="leave-btn" @click="leaveGroup">退群</button>
+      <div class="header-me">{{ myAvatar }} {{ myName }}</div>
+    </div>
+
+    <div class="msg-list" ref="msgList">
+      <div v-for="m in messages" :key="m.id" class="msg-row" :class="{ mine: m.sender_name === myName }">
+        <!-- 有头像就显示头像；万一有条老消息没存头像，就退回灰底 + 昵称第一个字。
+             这里用固定的灰色，不再像以前那样按名字算颜色 ——
+             现在每个人注册时就一定有头像，算颜色那段代码等于白跑，已经删掉了 -->
+        <div class="avatar" :class="{ emoji: m.avatar }" :style="{ background: m.avatar ? '#fff' : '#c9ccd4' }">{{ m.avatar || m.sender_name.slice(0, 1) }}</div>
+        <div class="bubble-wrap">
+          <div class="sender">{{ m.sender_name }}</div>
+
+          <!-- 撤回的消息不显示原内容，只留一句灰字 -->
+          <div class="bubble">
+            <span v-if="m.recalled" class="recalled-text">这条消息已撤回</span>
+            <span v-else>{{ m.content }}</span>
+          </div>
+
+          <div class="time">
+            {{ m.created_at.slice(11) }}
+            <!-- 只有自己发的消息才有"已读/未读"和"撤回" -->
+            <template v-if="m.sender_name === myName && !m.recalled">
+              <span class="read-flag">{{ readLabel(m) }}</span>
+              <span class="recall-link" @click="recallMessage(m)">撤回</span>
+            </template>
+          </div>
+        </div>
+      </div>
+      <p v-if="messages.length === 0" class="empty">还没有消息，说句话吧</p>
+    </div>
+
+    <!-- "谁正在输入"提示。写死一行高度，有提示就显示、没有就空着，页面不会上下跳 -->
+    <div class="typing-bar">
+      <span v-if="typingName" class="typing-text">
+        {{ typingAvatar }} {{ typingName }} 正在输入<i>.</i><i>.</i><i>.</i>
+      </span>
+    </div>
+
+    <div class="input-bar">
+      <!-- 不用 v-model，改成自己处理 @input：
+           这样"记录输入内容"和"告诉别人我在打字"两件事一定会一起发生 -->
+      <!-- 为什么要绑这么多事件？
+           手机上的中文输入法在"拼音选词"阶段不会触发 input 事件，
+           但一定会触发 compositionstart / compositionupdate（这俩事件就是为输入法准备的）。
+           只监听 input 的话，手机打字时对方就收不到"正在输入"提示。 -->
+      <input :value="inputText" class="input chat-input" placeholder="说点什么..."
+             @input="onInput"
+             @compositionstart="notifyTyping"
+             @compositionupdate="notifyTyping"
+             @keydown="notifyTyping"
+             @keyup.enter="sendMessage">
+      <button class="send" @click="sendMessage">发送</button>
+    </div>
+
+    <!-- 邀请面板。@click.self 的意思是"只有点在遮罩上才算点击"，
+         点在里面的卡片上不会误关掉 -->
+    <div v-if="showInvite" class="invite-mask" @click.self="showInvite = false">
+      <div class="invite-card">
+        <h3>邀请人进「{{ currentRoom.name }}」</h3>
+        <p class="invite-tip">把下面这个码或者链接发给对方就行</p>
+
+        <div class="invite-code">{{ currentRoom.invite_code }}</div>
+        <div class="invite-link">{{ inviteLink }}</div>
+
+        <button class="btn block-btn" @click="copyLink">复制邀请链接</button>
+        <p v-if="copyTip" class="copy-tip">{{ copyTip }}</p>
+        <button class="btn ghost-btn" @click="showInvite = false">关闭</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Vue 3 已下载到本项目里（static/vue.global.prod.js），直接从本机加载。
+     不再依赖网上 CDN：断网、网络差、CDN 被墙都不影响，手机和电脑都稳 -->
+<script src="/vue.global.prod.js"></script>
+<script src="/app.js?v=12"></script>
+</body>
+</html>
