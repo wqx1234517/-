@@ -1093,6 +1093,11 @@ createApp({
         if (inThisRoom) return;
 
         room.unread = msg.unread;
+
+        // 别的群来消息：不能只在左栏加个红点就算了，
+        // 提示音和标签页闪烁也得一起叫（跟"正在聊的群来消息"同一个函数，
+        // 里面会判断：人在别的页面才闪、铃铛关了就全关）
+        this.notifyNewMessage();
       };
 
       this.notifyWs.onclose = () => {
