@@ -1016,8 +1016,16 @@ createApp({
       document.body.classList.toggle("night", this.night);
     },
 
-    notifyNewMessage() {
-      if (this.soundOn) this.playSound();
+    // 提醒的总开关入口。参数 force 的意思见下面
+    notifyNewMessage(force) {
+      // 出声的规则只有一句话：你看得见就不响，看不见才响。
+      //   - 正看着这个群（页面在前台）：消息就在眼前，响一声纯属吵
+      //   - 人切到别的页面/手机锁屏了（document.hidden）：看不见，响
+      //   - 消息来自别的群（force=true）：你根本没打开那个群，一定看不见，响
+      const canSee = !force && !document.hidden;
+      if (!canSee && this.soundOn) {
+        this.playSound();
+      }
 
       // 标签页提醒：只有"人切到别的页面去了"（document.hidden）才提醒，
       // 人正看着聊天室时提醒没有意义；铃铛关掉则声音和闪烁一起全关
@@ -1096,8 +1104,9 @@ createApp({
 
         // 别的群来消息：不能只在左栏加个红点就算了，
         // 提示音和标签页闪烁也得一起叫（跟"正在聊的群来消息"同一个函数，
-        // 里面会判断：人在别的页面才闪、铃铛关了就全关）
-        this.notifyNewMessage();
+        // 里面会判断：人在别的页面才闪、铃铛关了就全关）。
+        // 传 true = 这个群我根本没打开，一定看不见，所以无条件出声
+        this.notifyNewMessage(true);
       };
 
       this.notifyWs.onclose = () => {
