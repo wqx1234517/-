@@ -8,6 +8,11 @@ from datetime import datetime
 import config
 
 
+# 公开大厅里预置的分类群。
+# 它们都是"公开群"：不用邀请码，谁都能点进去看，想说话再点加入。
+PUBLIC_GROUPS = ["游戏群", "八卦群", "二次元群", "运动群", "学习群", "音乐群"]
+
+
 def now_str():
     # 取当前时间，转成 "2026-10-02 16:50:01" 这种字符串。
     # 为什么不用数据库自带的 CURRENT_TIMESTAMP？
@@ -35,7 +40,8 @@ def init_db():
             name TEXT NOT NULL,
             created_at TEXT NOT NULL,
             invite_code TEXT DEFAULT '',
-            created_by TEXT DEFAULT ''
+            created_by TEXT DEFAULT '',
+            is_public INTEGER DEFAULT 0
         )
     """)
 
@@ -74,6 +80,10 @@ def init_db():
     if "created_by" not in room_cols:
         conn.execute("ALTER TABLE rooms ADD COLUMN created_by TEXT DEFAULT ''")
 
+    # is_public = 1 表示"公开群"：不用邀请码，谁都能点进去看，想说话再点加入
+    if "is_public" not in room_cols:
+        conn.execute("ALTER TABLE rooms ADD COLUMN is_public INTEGER DEFAULT 0")
+
     # 老房间已经不知道是谁建的了，就把"最早加入的那个人"当成创建者，
     # 这样老房间也能正常解散，不会出现谁都管不了的情况
     conn.execute("""
@@ -108,6 +118,11 @@ def init_db():
     if "recalled" not in cols:
         conn.execute("ALTER TABLE messages ADD COLUMN recalled INTEGER DEFAULT 0")
 
+    # 同上：quote_id 记录"这条消息引用了哪条消息"（存那条消息的编号，0=没引用）。
+    # 只存编号不存内容：内容变了（比如被撤回）这边能跟着变，也不会存两份数据
+    if "quote_id" not in cols:
+        conn.execute("ALTER TABLE messages ADD COLUMN quote_id INTEGER DEFAULT 0")
+
     # 用户表：存账号。注意这里存的是"加密后的密码"，不是密码本身
     conn.execute("""
         CREATE TABLE IF NOT EXISTS users (
@@ -122,6 +137,9 @@ def init_db():
 
     conn.commit()  # 建表也要提交，否则不会真正保存
     conn.close()
+
+    # 建完表顺手把公开大厅的分类群准备好（没有就建，删了库重启也会自己长回来）
+    ensure_public_groups()
 
 
 # ---------- 账号相关 ----------
@@ -209,6 +227,102 @@ def check_login(username, password):
     return {"id": user["id"], "username": user["username"], "avatar": user["avatar"]}
 
 
+def ensure_public_groups():
+    # 保证公开大厅里那几个分类群都存在。
+    # 建的时候 created_by 写"系统"，好处是复用已有规则：
+    # - 退群规则是"房主不能退"，房主是"系统"不是真人 → 谁都能退
+    # - 解散规则是"只有房主能解散" → 谁都解散不了
+    for name in PUBLIC_GROUPS:
+        row = get_room_by_name(name)
+        if row is None:
+            create_room(name, "系统", is_public=1)
+        elif not row.get("is_public"):
+            # 老数据里可能已经有同名房间，顺手把它标成公开的
+            conn = get_conn()
+            conn.execute("UPDATE rooms SET is_public = 1 WHERE id = ?", (row["id"],))
+            conn.commit()
+            conn.close()
+
+
+def get_room_by_name(name):
+    # 按名字查房间（公开大厅建群时用）
+    conn = get_conn()
+    row = conn.execute(
+        "SELECT id, name, created_at, invite_code, created_by, is_public FROM rooms WHERE name = ?",
+        (name,),
+    ).fetchone()
+    conn.close()
+
+    if row is None:
+        return None
+    return {
+        "id": row[0],
+        "name": row[1],
+        "created_at": row[2],
+        "invite_code": row[3] or "",
+        "created_by": row[4] or "",
+        "is_public": row[5] or 0,
+    }
+
+
+def get_room_by_id(room_id):
+    # 按 id 查房间（判断权限时用）
+    conn = get_conn()
+    row = conn.execute(
+        "SELECT id, name, created_at, invite_code, created_by, is_public FROM rooms WHERE id = ?",
+        (room_id,),
+    ).fetchone()
+    conn.close()
+
+    if row is None:
+        return None
+    return {
+        "id": row[0],
+        "name": row[1],
+        "created_at": row[2],
+        "invite_code": row[3] or "",
+        "created_by": row[4] or "",
+        "is_public": row[5] or 0,
+    }
+
+
+def can_read(room_id, username):
+    # 能不能看这个房间的消息：成员当然能看；公开群的话，不是成员也能看
+    if is_member(username, room_id):
+        return True
+    room = get_room_by_id(room_id)
+    return bool(room and (room["is_public"] or 0))
+
+
+def list_public_rooms():
+    # 公开大厅的格子：所有公开群，按固定顺序排
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT id, name, created_at, invite_code, created_by, is_public FROM rooms ORDER BY id"
+    ).fetchall()
+    conn.close()
+
+    out = []
+    for r in rows:
+        if not (r[5] or 0):
+            continue
+        out.append({
+            "id": r[0],
+            "name": r[1],
+            "created_at": r[2],
+            "invite_code": r[3] or "",
+            "created_by": r[4] or "",
+            "is_public": 1,
+            "unread": 0,
+        })
+
+    # 按 PUBLIC_GROUPS 里写的顺序排，而不是按数据库里的 id，
+    # 这样页面的格子顺序永远是我们规定的那个
+    order = {name: i for i, name in enumerate(PUBLIC_GROUPS)}
+    out.sort(key=lambda r: order.get(r["name"], 999))
+    return out
+
+
 def add_member(username, room_id):
     # 记下"这个人加入过这个房间"。
     # INSERT OR IGNORE 的意思是：如果已经记过（用户名+房间这个组合重复了），
@@ -284,7 +398,8 @@ def list_rooms_of(username):
         "created_at": r[2],
         "invite_code": r[3] or "",
         "created_by": r[4] or "",   # 谁建的，前端靠它决定"解散"按钮显不显示
-        "unread": r[5] or 0,        # 有几条没看，列表上要显示红点
+        "unread": r[5] or 0,        # 有几条没看，侧边栏上要显示红点
+        "is_public": 0,             # 我加入过的都是私密群（公开群单独从大厅查）
     } for r in rows]
 
 
@@ -308,7 +423,7 @@ def get_room_by_code(code):
     }
 
 
-def create_room(name, creator=""):
+def create_room(name, creator="", is_public=0):
     # 允许建同名房间：每次点"新建"都是一个全新的房间，配一个新的邀请码。
     # 这样几个人都建"测试房间"也不会互相撞车，各自靠邀请码区分。
     # （房间名不再是唯一标识，邀请码才是）
@@ -325,8 +440,9 @@ def create_room(name, creator=""):
     # 用 ? 占位符传参数，千万不要自己用 + 号拼字符串：
     # 第一是安全（能挡住 SQL 注入），第二是名字里带引号时不会把语句搞坏
     cur = conn.execute(
-        "INSERT INTO rooms (name, created_at, invite_code, created_by) VALUES (?, ?, ?, ?)",
-        (name, t, code, creator),
+        "INSERT INTO rooms (name, created_at, invite_code, created_by, is_public) "
+        "VALUES (?, ?, ?, ?, ?)",
+        (name, t, code, creator, is_public),
     )
     conn.commit()
     new_id = cur.lastrowid  # 拿到数据库自动生成的 id
@@ -342,6 +458,7 @@ def create_room(name, creator=""):
         "created_at": t,
         "invite_code": code,
         "created_by": creator,   # 记下是谁建的，以后只有他能解散
+        "is_public": is_public,
     }
 
 
@@ -392,16 +509,34 @@ def delete_room(room_id, username):
     return True
 
 
-def save_message(room_id, sender_name, content, avatar=""):
+def save_message(room_id, sender_name, content, avatar="", quote_id=0):
     # 存一条消息。存完把整条消息返回去，方便直接转发给其他人
     # avatar 默认空字符串：老消息、或者没选头像的人就不会出错
+    # quote_id 是"引用的那条消息的编号"，0 表示这条消息没引用谁
     t = now_str()
     conn = get_conn()
     cur = conn.execute(
-        "INSERT INTO messages (room_id, sender_name, content, created_at, avatar) VALUES (?, ?, ?, ?, ?)",
-        (room_id, sender_name, content, t, avatar),
+        "INSERT INTO messages (room_id, sender_name, content, created_at, avatar, quote_id) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (room_id, sender_name, content, t, avatar, quote_id),
     )
     conn.commit()
+
+    # 引用的消息存在的话，把它的"作者 + 内容 + 有没有撤回"一并查出来，
+    # 这样前端拿到就能直接显示，不用再发一次请求
+    quote_name = quote_content = None
+    quote_recalled = 0
+    if quote_id:
+        q = conn.execute(
+            "SELECT sender_name, content, recalled FROM messages WHERE id = ? AND room_id = ?",
+            (quote_id, room_id),
+        ).fetchone()
+        # 查不到（编号不对、或者引用的是别的房间的消息）就当没引用
+        if q is None:
+            quote_id = 0
+        else:
+            quote_name, quote_content, quote_recalled = q[0], q[1], (q[2] or 0)
+
     new_id = cur.lastrowid
     conn.close()
 
@@ -413,6 +548,10 @@ def save_message(room_id, sender_name, content, avatar=""):
         "created_at": t,
         "avatar": avatar,
         "recalled": 0,   # 刚发的消息当然是没撤回的
+        "quote_id": quote_id,
+        "quote_name": quote_name,
+        "quote_content": quote_content,
+        "quote_recalled": quote_recalled,
     }
 
 
@@ -454,9 +593,13 @@ def set_last_read(username, room_id, last_id):
 
 def get_read_states(room_id):
     # 这个房间里每个人读到哪儿了，返回一个"用户名 -> 读到的消息 id"的对照表
+    # 注意把"系统"排除掉：公开群的房主是"系统"，建群时被登记成了成员，
+    # 但它永远不会真的读消息——不排除的话，"查看已读"的未读名单里会一直挂着它
     conn = get_conn()
     rows = conn.execute(
-        "SELECT username, last_read_id FROM room_members WHERE room_id = ?", (room_id,)
+        "SELECT username, last_read_id FROM room_members "
+        "WHERE room_id = ? AND username <> ?",
+        (room_id, "系统"),
     ).fetchall()
     conn.close()
 
@@ -466,10 +609,16 @@ def get_read_states(room_id):
 def get_messages(room_id, limit=200):
     # 取某个房间的历史消息。
     # DESC 是从最新往回取，只取 limit 条，避免消息太多一次拉爆页面
+    #
+    # LEFT JOIN messages q：把"被引用的那条消息"也一起查出来。
+    # LEFT JOIN 的意思是"左边的消息全要，右边的被引用消息有就带上、没有就填空"，
+    # 这样没引用的消息（quote_id=0）也不会漏掉
     conn = get_conn()
     rows = conn.execute(
-        "SELECT id, sender_name, content, created_at, avatar, recalled FROM messages "
-        "WHERE room_id = ? ORDER BY id DESC LIMIT ?",
+        "SELECT m.id, m.sender_name, m.content, m.created_at, m.avatar, m.recalled, "
+        "  m.quote_id, q.sender_name, q.content, q.recalled "
+        "FROM messages m LEFT JOIN messages q ON q.id = m.quote_id "
+        "WHERE m.room_id = ? ORDER BY m.id DESC LIMIT ?",
         (room_id, limit),
     ).fetchall()
     conn.close()
@@ -485,4 +634,8 @@ def get_messages(room_id, limit=200):
         "created_at": r[3],
         "avatar": r[4] or "",
         "recalled": r[5] or 0,
+        "quote_id": r[6] or 0,
+        "quote_name": r[7],
+        "quote_content": r[8],
+        "quote_recalled": (r[9] or 0) if r[6] else 0,
     } for r in rows]

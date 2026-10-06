@@ -149,9 +149,9 @@ def get_room_messages(room_id: int, token: str = ""):
     if username is None:
         raise HTTPException(status_code=401, detail="请先登录")
 
-    # 不是这个房间的人，不给他看聊天记录
-    if not db_helper.is_member(username, room_id):
-        raise HTTPException(status_code=403, detail="你还不是这个房间的成员")
+    # 不是成员不给看 —— 但公开群例外，谁都能点进来看看
+    if not db_helper.can_read(room_id, username):
+        raise HTTPException(status_code=403, detail="你还不是这个房间的成员，先加入吧")
 
     return db_helper.get_messages(room_id)
 
@@ -219,7 +219,44 @@ async def send_online_count(room_id):
     })
 
 
-# 接口 5：退群（自己退出这个房间）。
+# 接口 5：公开大厅的格子列表（游戏群、八卦群、二次元群……）
+@app.get("/api/hall/rooms")
+def hall_rooms(token: str = ""):
+    username = user_of(token)
+    if username is None:
+        raise HTTPException(status_code=401, detail="请先登录")
+
+    rooms = db_helper.list_public_rooms()
+
+    # 保底：万一数据库被清过、或者这几个群还没建出来，
+    # 这里现场补建一次，免得必须重启服务器才能看到大厅
+    if not rooms:
+        db_helper.ensure_public_groups()
+        rooms = db_helper.list_public_rooms()
+
+    return rooms
+
+
+# 接口 6：按房间号加入一个公开群（在大厅里点"加入"走这里）
+@app.post("/api/rooms/{room_id}/join")
+def join_public_room(room_id: int, token: str = ""):
+    username = user_of(token)
+    if username is None:
+        raise HTTPException(status_code=401, detail="请先登录")
+
+    room = db_helper.get_room_by_id(room_id)
+    if room is None:
+        raise HTTPException(status_code=404, detail="这个房间不存在")
+
+    if not (room["is_public"] or 0):
+        # 私密群不给直接加入，得用邀请码走 /api/join
+        raise HTTPException(status_code=403, detail="这是私密群，需要邀请码才能进")
+
+    db_helper.add_member(username, room_id)
+    return room
+
+
+# 接口 7：退群（自己退出这个房间）。
 # 跟解散的区别：房间留着，别人还能继续聊，只是你不在了
 @app.post("/api/rooms/{room_id}/leave")
 def leave_room_api(room_id: int, token: str = ""):
@@ -234,7 +271,7 @@ def leave_room_api(room_id: int, token: str = ""):
     return {"ok": True}
 
 
-# 接口 6：解散房间。只有建这个房间的人能操作
+# 接口 8：解散房间。只有建这个房间的人能操作
 # 这里写成 async def（前面几个都是 def），是因为里面要 await 广播通知，
 # 同步函数里没法直接 await
 @app.post("/api/rooms/{room_id}/dismiss")
@@ -290,8 +327,9 @@ async def websocket_chat(websocket: WebSocket, room_id: int, token: str = ""):
         await websocket.close(code=1008)   # 1008 是"拒绝"的意思
         return
 
-    # 就算登录了，也得是这个房间的成员才让进（防止有人拿到房间号硬闯）
-    if not db_helper.is_member(username, room_id):
+    # 进门资格：要么是成员，要么是公开群（公开群允许"先看看再决定加不加入"）。
+    # 私密房间不是成员就拦掉，防止有人拿到房间号硬闯
+    if not db_helper.can_read(room_id, username):
         await websocket.close(code=1008)
         return
 
@@ -307,6 +345,14 @@ async def websocket_chat(websocket: WebSocket, room_id: int, token: str = ""):
 
     # 有人进来，立刻告诉所有人最新的人数
     await send_online_count(room_id)
+
+    # 把群里每个人的读进度先发给"刚进来的这个人"。
+    # 不发的话，他要等"下一个人读了消息"才能拿到这份数据，
+    # 右键查"谁已读"的时候就会是空的
+    await websocket.send_json({
+        "type": "read",
+        "reads": db_helper.get_read_states(room_id),
+    })
 
     try:
         # 一直等这个人发消息。不发就一直等着，不占 CPU
@@ -340,16 +386,54 @@ async def websocket_chat(websocket: WebSocket, room_id: int, token: str = ""):
                     "sender_name": username,   # 用令牌查出来的名字，不采信前端传的
                     "avatar": avatar,
                 }, skip=websocket)
-            else:
+
+            elif kind == "poke":
+                # 拍一拍：纯即时的娱乐互动，跟"正在输入"一样不存数据库。
+                # 服务器只做两件事：确认被拍的人名字不为空、不等于自己，然后转发全房间。
+                # 发送者自己也会收到，这样他自己也能看到特效
+                # mid = "拍的是哪条消息旁边的头像"，前端靠它锁定同一个头像。
+                # 同样要校验这条消息真的属于本房间，防止传个别的房间的编号过来
+                target = str(data.get("target", "")).strip()
+                if target and target != username:
+                    mid = data.get("mid") or 0
+                    m_info = db_helper.get_message_by_id(mid) if mid else None
+                    if not (m_info and m_info["room_id"] == room_id):
+                        mid = 0
+
+                    await broadcast(room_id, {
+                        "type": "poke",
+                        "from": username,
+                        "avatar": avatar,
+                        "target": target,
+                        "mid": mid,
+                    })
+
+            elif kind == "message":
+                # 公开群里"只看不加入"的人不能发言，先确认一下身份
+                if not db_helper.is_member(username, room_id):
+                    await websocket.send_json({
+                        "type": "notice",
+                        "text": "先点「加入本群」才能发言",
+                    })
+                    continue
+
+                # 引用的消息：前端会带 quote_id（引用的那条消息的编号）。
+                # 校验一下：必须是本房间真实存在的消息才认，不然当没引用，
+                # 防止有人乱传编号把别的房间的消息引过来
+                quote_id = data.get("quote_id") or 0
+                qmsg = db_helper.get_message_by_id(quote_id) if quote_id else None
+                if not (qmsg and qmsg["room_id"] == room_id):
+                    quote_id = 0
+
                 # 普通消息：先存数据库（这样刷新页面、断线重连都能找回）
                 # 发送者名字和头像都取自服务器这边，前端说了不算
-                msg = db_helper.save_message(room_id, username, data["content"], avatar)
+                msg = db_helper.save_message(room_id, username, data["content"], avatar, quote_id)
                 msg["type"] = "message"   # 打个标记，前端好区分
                 # 再转发给房间里的所有人（包括发消息的人自己）
                 await broadcast(room_id, msg)
 
                 # 顺便给"没在这个房间里看着的人"发一条未读提醒，
-                # 这样他们在房间列表上能立刻看到红点
+                # 这样他们在侧边栏上能立刻看到红点
                 await push_unread(room_id, username)
     except WebSocketDisconnect:
         # 对方正常关掉页面，什么都不用做，下面的 finally 会清理

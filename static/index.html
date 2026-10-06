@@ -5,180 +5,284 @@
   <!-- 这行让手机上按屏幕真实宽度显示，不会被缩放成"缩小版电脑网页" -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>轻量聊天室</title>
-  <!-- 文件名后面加 ?v=12 是"版本号"：改了代码就把数字加一，
+  <!-- 文件名后面加 ?v=20 是"版本号"：改了代码就把数字加一，
        浏览器会当成新文件重新下载，手机上不用辛苦清缓存也会更新 -->
-  <link rel="stylesheet" href="/style.css?v=12">
+  <link rel="stylesheet" href="/style.css?v=41">
 </head>
 <body>
 
 <!-- v-if / v-for / @click 这些都是 Vue 的写法，具体含义看 app.js 里的注释 -->
 <div id="app">
 
-  <!-- ============ 第 0 屏：还没登录，先显示登录/注册 ============ -->
-  <div v-if="!token" class="home">
-    <h1 class="title">轻量聊天室</h1>
-    <p class="sub">{{ isRegister ? '注册一个账号就能开始聊' : '登录后就能进入房间' }}</p>
-
-    <input v-model="loginName" class="input" placeholder="用户名" maxlength="12">
-    <input v-model="loginPwd" class="input" type="password" placeholder="密码"
-           style="margin-top: 10px" @keyup.enter="submit">
-
-    <!-- 注册时才让人挑头像，登录的话用账号里存好的那个 -->
-    <div class="avatar-picker" v-if="isRegister">
-      <span class="picker-title">选个头像</span>
-      <div class="avatar-grid">
-        <span v-for="e in avatarList" :key="e"
-              class="avatar-option" :class="{ active: myAvatar === e }"
-              @click="pickAvatar(e)">{{ e }}</span>
-      </div>
-    </div>
-
-    <!-- 出错时显示后端返回的那句话 -->
-    <p v-if="loginError" class="error-text">{{ loginError }}</p>
-
-    <button class="btn block-btn" @click="submit">{{ isRegister ? '注册并进入' : '登录' }}</button>
-
-    <p class="switch-line">
-      <span @click="switchMode">
-        {{ isRegister ? '已经有账号了？去登录' : '还没有账号？去注册' }}
-      </span>
-    </p>
-  </div>
-
-  <!-- ============ 第一屏：登录了但还没进房间，显示房间列表 ============ -->
-  <div v-else-if="!currentRoom" class="home">
-    <div class="home-top">
+  <!-- ============ 没登录：登录 / 注册（占满整屏） ============ -->
+  <div v-if="!token" class="login-page">
+    <!-- 登录页的主题切换：右上角浮一颗圆按钮（登录页看不到左上角的"我"卡片） -->
+    <div class="theme-float" @click="toggleNight" title="切换白天/夜间模式">{{ night ? '☀️' : '🌙' }}</div>
+    <div class="login-card">
       <h1 class="title">轻量聊天室</h1>
-      <div class="top-actions">
-        <!-- 提示音开关：🔔 开着，🔕 关着 -->
+      <p class="sub">{{ isRegister ? '注册一个账号就能开始' : '登录后进入你的群聊' }}</p>
+
+      <input v-model="loginName" class="input" placeholder="用户名" maxlength="12">
+      <input v-model="loginPwd" class="input" type="password" placeholder="密码"
+             style="margin-top: 10px" @keyup.enter="submit">
+
+      <!-- 注册时才让人挑头像，登录的话用账号里存好的那个 -->
+      <div class="avatar-picker" v-if="isRegister">
+        <span class="picker-title">选个头像</span>
+        <div class="avatar-grid">
+          <span v-for="e in avatarList" :key="e"
+                class="avatar-option" :class="{ active: myAvatar === e }"
+                @click="pickAvatar(e)">{{ e }}</span>
+        </div>
+      </div>
+
+      <p v-if="loginError" class="error-text">{{ loginError }}</p>
+
+      <button class="btn block-btn" @click="submit">{{ isRegister ? '注册并进入' : '登录' }}</button>
+
+      <p class="switch-line">
+        <span @click="switchMode">
+          {{ isRegister ? '已经有账号了？去登录' : '还没有账号？去注册' }}
+        </span>
+      </p>
+    </div>
+  </div>
+
+  <!-- ============ 已登录：左边目录 + 右边内容 ============ -->
+  <div v-else class="main">
+
+    <!-- ---------- 左栏 ---------- -->
+    <aside class="sidebar">
+      <!-- 左上角：我 -->
+      <div class="me">
+        <div class="me-avatar">{{ myAvatar }}</div>
+        <div class="me-info">
+          <div class="me-name">{{ myName }}</div>
+          <div class="me-exit" @click="logout">退出登录</div>
+        </div>
         <span class="sound-toggle" @click="toggleSound">{{ soundOn ? '🔔' : '🔕' }}</span>
-        <span class="logout" @click="logout">退出登录</span>
+        <!-- 白天/夜间切换：跟铃铛并排，点一下全站换肤，选择会记住（存浏览器里） -->
+        <span class="theme-toggle" @click="toggleNight" title="切换白天/夜间模式">{{ night ? '☀️' : '🌙' }}</span>
       </div>
-    </div>
-    <p class="sub">{{ myAvatar }} {{ myName }}，挑个房间就能聊</p>
 
-    <div class="room-list">
-      <!-- 房间可以重名，所以列表里把邀请码也显示出来，方便分清楚哪个是哪个 -->
-      <div v-for="room in rooms" :key="room.id" class="room-item" @click="enterRoom(room)">
-        <span class="room-icon">💬</span>
-        <div class="room-main">
-          <div class="room-name">{{ room.name }}</div>
-          <div class="room-code">邀请码 {{ room.invite_code }}</div>
+      <!-- 我加入 / 创建的群 -->
+      <div class="side-section">
+        <div class="side-title">我的群聊</div>
+        <div v-for="room in rooms" :key="room.id"
+             class="side-item" :class="{ active: view === 'room' && currentRoom && currentRoom.id === room.id }"
+             @click="openRoom(room)">
+          <span class="side-icon">💬</span>
+          <span class="side-name">{{ room.name }}</span>
+          <span v-if="room.unread" class="unread-badge">{{ room.unread > 99 ? '99+' : room.unread }}</span>
         </div>
-        <!-- 有没看过的消息就显示红点，数字是没看的条数 -->
-        <span v-if="room.unread" class="unread-badge">{{ room.unread > 99 ? '99+' : room.unread }}</span>
-        <span class="room-arrow">›</span>
+        <p v-if="rooms.length === 0" class="side-empty">还没有群，去下面的公开大厅逛逛</p>
       </div>
-      <p v-if="rooms.length === 0" class="empty">还没有房间，下面建一个吧</p>
-    </div>
 
-    <!-- 别人把邀请码发给你，在这里输进去就能进他那个房间 -->
-    <div class="new-room">
-      <!-- 这里既可以填 6 位邀请码，也可以直接把整条邀请链接粘进来
-           （maxlength 放宽就是为了让粘贴长链接时不会被截断） -->
-      <input v-model="joinCode" class="input" placeholder="邀请码或邀请链接" @keyup.enter="joinByInput">
-      <button class="btn" @click="joinByInput">加入</button>
-    </div>
-
-    <div class="new-room">
-      <input v-model="newRoomName" class="input" placeholder="新房间名字" maxlength="12" @keyup.enter="createRoom">
-      <button class="btn" @click="createRoom">新建</button>
-    </div>
-  </div>
-
-  <!-- ============ 第二屏：进了房间之后，显示聊天界面 ============ -->
-  <div v-else class="chat">
-
-    <div class="chat-header">
-      <button class="back" @click="leaveRoom">‹</button>
-      <div class="header-info">
-        <div class="header-name">{{ currentRoom.name }}</div>
-        <div class="header-state">
-          <span class="dot" :class="connected ? 'on' : 'off'"></span>
-          <!-- 连上之后，这里显示房间里当前的在线人数 -->
-          {{ connected ? onlineCount + ' 人在房间里' : '连接中...' }}
+      <!-- 公开大厅（群广场） -->
+      <div class="side-section">
+        <div class="side-title">发现</div>
+        <div class="side-item" :class="{ active: view === 'hall' }" @click="openHall">
+          <span class="side-icon">🏛</span>
+          <span class="side-name">公开大厅</span>
         </div>
       </div>
-      <button class="invite-btn" @click="showInvite = true">邀请</button>
-      <!-- 两个按钮二选一：房主看到"解散"，普通成员看到"退群" -->
-      <button v-if="currentRoom.created_by === myName" class="dismiss-btn" @click="dismissRoom">解散</button>
-      <button v-else class="leave-btn" @click="leaveGroup">退群</button>
-      <div class="header-me">{{ myAvatar }} {{ myName }}</div>
-    </div>
 
-    <div class="msg-list" ref="msgList">
-      <div v-for="m in messages" :key="m.id" class="msg-row" :class="{ mine: m.sender_name === myName }">
-        <!-- 有头像就显示头像；万一有条老消息没存头像，就退回灰底 + 昵称第一个字。
-             这里用固定的灰色，不再像以前那样按名字算颜色 ——
-             现在每个人注册时就一定有头像，算颜色那段代码等于白跑，已经删掉了 -->
-        <div class="avatar" :class="{ emoji: m.avatar }" :style="{ background: m.avatar ? '#fff' : '#c9ccd4' }">{{ m.avatar || m.sender_name.slice(0, 1) }}</div>
-        <div class="bubble-wrap">
-          <div class="sender">{{ m.sender_name }}</div>
+      <!-- 底部：建群 + 用邀请码加入 -->
+      <div class="side-bottom">
+        <div class="side-row">
+          <input v-model="newRoomName" class="input side-input" placeholder="新群名字" maxlength="12" @keyup.enter="createRoom">
+          <button class="side-btn" @click="createRoom">建群</button>
+        </div>
+        <div class="side-row">
+          <input v-model="joinCode" class="input side-input" placeholder="邀请码或邀请链接" @keyup.enter="joinByInput">
+          <button class="side-btn" @click="joinByInput">加入</button>
+        </div>
+      </div>
+    </aside>
 
-          <!-- 撤回的消息不显示原内容，只留一句灰字 -->
-          <div class="bubble">
-            <span v-if="m.recalled" class="recalled-text">这条消息已撤回</span>
-            <span v-else>{{ m.content }}</span>
+    <!-- ---------- 右栏 ---------- -->
+    <section class="content">
+
+      <!-- 什么都没选：空白引导 -->
+      <div v-if="view === 'none'" class="blank">
+        <div class="blank-icon">💬</div>
+        <p class="blank-text">左边挑一个群聊</p>
+        <p class="blank-sub">或去「公开大厅」找找感兴趣的群</p>
+      </div>
+
+      <!-- 公开大厅：格子广场 -->
+      <div v-else-if="view === 'hall'" class="hall">
+        <h2 class="hall-title">公开大厅</h2>
+        <p class="hall-sub">挑一个感兴趣的群，点进去先看再决定加不加入</p>
+
+        <div class="tiles">
+          <!-- 每个格子风格都不一样，对应群名的主题（配色和装饰在 style.css 里） -->
+          <div v-for="g in hallRooms" :key="g.id"
+               class="tile" :class="'tile-' + tileStyle(g.name)"
+               @click="openRoom(g)">
+            <span class="tile-icon">{{ tileIcon(g.name) }}</span>
+            <div class="tile-text">
+              <div class="tile-name">{{ g.name }}</div>
+              <div class="tile-desc">{{ tileDesc(g.name) }}</div>
+            </div>
+            <span class="tile-go">›</span>
+            <!-- 右边这块是"小舞台"：每个群的专属插画（掌机/电视机/喇叭...）用 CSS 画在里面 -->
+            <span class="tile-art" aria-hidden="true"></span>
           </div>
+        </div>
+      </div>
 
-          <div class="time">
-            {{ m.created_at.slice(11) }}
-            <!-- 只有自己发的消息才有"已读/未读"和"撤回" -->
-            <template v-if="m.sender_name === myName && !m.recalled">
-              <span class="read-flag">{{ readLabel(m) }}</span>
-              <span class="recall-link" @click="recallMessage(m)">撤回</span>
+      <!-- 聊天界面 -->
+      <div v-else class="chat">
+
+        <div class="chat-header">
+          <div class="chat-title">
+            <div class="header-name">{{ currentRoom.name }}</div>
+            <div class="header-state">
+              <span class="dot" :class="connected ? 'on' : 'off'"></span>
+              {{ connected ? onlineCount + ' 人在房间里' : '连接中...' }}
+            </div>
+          </div>
+          <button class="invite-btn" @click="showInvite = true">邀请</button>
+          <!-- 房主看到"解散"，普通成员看到"退群" -->
+          <button v-if="currentRoom.created_by === myName" class="dismiss-btn" @click="dismissRoom">解散</button>
+          <button v-else-if="inMyRooms" class="leave-btn" @click="leaveGroup">退群</button>
+        </div>
+
+        <div class="msg-list" ref="msgList">
+          <!-- @contextmenu.prevent：右键时拦截掉浏览器自带的菜单，换成我们自己的小菜单 -->
+          <div v-for="m in messages" :key="m.id" class="msg-row"
+               :class="{ mine: m.sender_name === myName }"
+               :data-name="m.sender_name" :data-mid="m.id"
+               @contextmenu.prevent="openMsgMenu($event, m)">
+            <!-- 有头像：浅色底衬托表情；没头像的老消息：直接用渐变圆 + 昵称第一个字 -->
+            <!-- 双击头像 = 拍一拍（电脑双击/手机双击都走 onAvatarTap 里自己数的"两次点击"）。
+                 @mousedown.prevent：按住拖动本来会框选文字，这里直接不让它开始 -->
+            <div class="avatar" :class="{ emoji: m.avatar }"
+                 :style="{ background: m.avatar ? 'rgba(255,255,255,0.92)' : 'linear-gradient(135deg,#22d3ee,#a855f7)' }"
+                 @mousedown.prevent
+                 @click="onAvatarTap(m)">{{ m.avatar || m.sender_name.slice(0, 1) }}</div>
+            <div class="bubble-wrap">
+              <div class="sender">{{ m.sender_name }}</div>
+              <div class="bubble">
+                <span v-if="m.recalled" class="recalled-text">这条消息已撤回</span>
+                <template v-else>
+                  <!-- 引用块：这条消息如果引用了别人，先显示引用的那条（灰底小字） -->
+                  <div v-if="m.quote_id" class="quote-box">
+                    {{ m.quote_name }}：{{ m.quote_recalled ? '原消息已撤回' : m.quote_content }}
+                  </div>
+                  <span>{{ m.content }}</span>
+                </template>
+              </div>
+              <div class="time">
+                {{ m.created_at.slice(11) }}
+                <template v-if="m.sender_name === myName && !m.recalled">
+                  <span class="read-flag">{{ readLabel(m) }}</span>
+                  <span class="recall-link" @click="recallMessage(m)">撤回</span>
+                </template>
+              </div>
+            </div>
+          </div>
+          <p v-if="messages.length === 0" class="empty">还没有消息，说句话吧</p>
+        </div>
+
+        <!-- "谁正在输入"，高度写死，出现消失时页面不会跳 -->
+        <div class="typing-bar">
+          <span v-if="typingName" class="typing-text">
+            {{ typingAvatar }} {{ typingName }} 正在输入<i>.</i><i>.</i><i>.</i>
+          </span>
+        </div>
+
+        <!-- 引用条：点菜单里的"引用"后出现，挂在输入框上方，点 × 取消 -->
+        <div v-if="inMyRooms && quote" class="quote-bar">
+          <span class="quote-text">引用 {{ quote.name }}：{{ quote.content }}</span>
+          <span class="quote-close" @click="quote = null">×</span>
+        </div>
+
+        <!-- 已经加入：正常输入框；只是看看（公开群未加入）：给一个加入按钮 -->
+        <div v-if="inMyRooms" class="input-bar">
+          <input :value="inputText" class="input chat-input" placeholder="说点什么..."
+                 @input="onInput"
+                 @compositionstart="notifyTyping"
+                 @compositionupdate="notifyTyping"
+                 @keydown="notifyTyping"
+                 @keyup.enter="sendMessage">
+          <button class="send" @click="sendMessage">发送</button>
+        </div>
+        <div v-else class="input-bar join-bar">
+          <div class="join-tip">{{ tip || '你还不是这个群的成员，只能看看' }}</div>
+          <button class="send" @click="joinCurrentRoom">加入本群</button>
+        </div>
+
+        <!-- 邀请面板（@click.self：只有点在遮罩本身才算，点卡片不会误关） -->
+        <div v-if="showInvite" class="invite-mask" @click.self="showInvite = false">
+          <div class="invite-card">
+            <h3>邀请人进「{{ currentRoom.name }}」</h3>
+            <p class="invite-tip">把这个码或者链接发给对方就行</p>
+
+            <div class="invite-code">{{ currentRoom.invite_code }}</div>
+            <div class="invite-link">{{ inviteLink }}</div>
+
+            <button class="btn block-btn" @click="copyLink">复制邀请链接</button>
+            <p v-if="copyTip" class="copy-tip">{{ copyTip }}</p>
+            <button class="btn ghost-btn" @click="showInvite = false">关闭</button>
+          </div>
+        </div>
+
+        <!-- 右键消息的小菜单：后面垫一层透明遮罩，点菜单外任何地方都能关掉 -->
+        <div v-if="msgMenu" class="menu-mask" @click="closeMsgMenu" @contextmenu.prevent="closeMsgMenu">
+          <div class="msg-menu" :style="{ left: msgMenu.x + 'px', top: msgMenu.y + 'px' }">
+            <!-- 撤回和查已读只对自己发的消息有意义，用 v-if 控制显不显示 -->
+            <template v-if="msgMenu.m.sender_name === myName">
+              <div class="menu-item is-danger" @click="menuRecall">撤回这条消息</div>
+              <div class="menu-item" @click="menuReadInfo">查看已读</div>
             </template>
+            <div class="menu-item" @click="menuCopy">复制</div>
+            <div class="menu-item" @click="menuQuote">引用</div>
           </div>
         </div>
+
+        <!-- "谁已读"弹窗（样式跟邀请面板共用一套） -->
+        <div v-if="readPanel" class="invite-mask" @click.self="readPanel = null">
+          <div class="invite-card">
+            <h3>已读情况</h3>
+            <p class="invite-tip">右键消息就能查（自己不算在内）</p>
+
+            <!-- 两个名单都空：群里还没有别人的读记录 -->
+            <template v-if="readPanel.read.length || readPanel.unread.length">
+              <div v-if="readPanel.read.length" class="read-group">
+                <div class="read-group-title is-read">✓ 已读（{{ readPanel.read.length }}）</div>
+                <div class="read-names">
+                  <span v-for="n in readPanel.read" :key="n" class="read-chip is-read">{{ n }}</span>
+                </div>
+              </div>
+              <div v-if="readPanel.unread.length" class="read-group">
+                <div class="read-group-title is-unread">✗ 未读（{{ readPanel.unread.length }}）</div>
+                <div class="read-names">
+                  <span v-for="n in readPanel.unread" :key="n" class="read-chip is-unread">{{ n }}</span>
+                </div>
+              </div>
+            </template>
+            <p v-else class="invite-tip" style="margin-top: 4px">群里还没有其他人的读记录</p>
+
+            <button class="btn ghost-btn" @click="readPanel = null">关闭</button>
+          </div>
+        </div>
+
       </div>
-      <p v-if="messages.length === 0" class="empty">还没有消息，说句话吧</p>
-    </div>
-
-    <!-- "谁正在输入"提示。写死一行高度，有提示就显示、没有就空着，页面不会上下跳 -->
-    <div class="typing-bar">
-      <span v-if="typingName" class="typing-text">
-        {{ typingAvatar }} {{ typingName }} 正在输入<i>.</i><i>.</i><i>.</i>
-      </span>
-    </div>
-
-    <div class="input-bar">
-      <!-- 不用 v-model，改成自己处理 @input：
-           这样"记录输入内容"和"告诉别人我在打字"两件事一定会一起发生 -->
-      <!-- 为什么要绑这么多事件？
-           手机上的中文输入法在"拼音选词"阶段不会触发 input 事件，
-           但一定会触发 compositionstart / compositionupdate（这俩事件就是为输入法准备的）。
-           只监听 input 的话，手机打字时对方就收不到"正在输入"提示。 -->
-      <input :value="inputText" class="input chat-input" placeholder="说点什么..."
-             @input="onInput"
-             @compositionstart="notifyTyping"
-             @compositionupdate="notifyTyping"
-             @keydown="notifyTyping"
-             @keyup.enter="sendMessage">
-      <button class="send" @click="sendMessage">发送</button>
-    </div>
-
-    <!-- 邀请面板。@click.self 的意思是"只有点在遮罩上才算点击"，
-         点在里面的卡片上不会误关掉 -->
-    <div v-if="showInvite" class="invite-mask" @click.self="showInvite = false">
-      <div class="invite-card">
-        <h3>邀请人进「{{ currentRoom.name }}」</h3>
-        <p class="invite-tip">把下面这个码或者链接发给对方就行</p>
-
-        <div class="invite-code">{{ currentRoom.invite_code }}</div>
-        <div class="invite-link">{{ inviteLink }}</div>
-
-        <button class="btn block-btn" @click="copyLink">复制邀请链接</button>
-        <p v-if="copyTip" class="copy-tip">{{ copyTip }}</p>
-        <button class="btn ghost-btn" @click="showInvite = false">关闭</button>
-      </div>
-    </div>
-
+    </section>
   </div>
+
+  <!-- 复制成功之类的小提示，飘在屏幕下方 -->
+  <div v-if="toast" class="toast">{{ toast }}</div>
+
+  <!-- 拍一拍特效层：铺满全屏但不挡鼠标，所有特效都画在这层上，画完自动删 -->
+  <div ref="fxLayer" class="fx-layer" aria-hidden="true"></div>
 </div>
 
 <!-- Vue 3 已下载到本项目里（static/vue.global.prod.js），直接从本机加载。
      不再依赖网上 CDN：断网、网络差、CDN 被墙都不影响，手机和电脑都稳 -->
 <script src="/vue.global.prod.js"></script>
-<script src="/app.js?v=12"></script>
+<script src="/app.js?v=41"></script>
 </body>
 </html>

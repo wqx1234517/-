@@ -1,3 +1,33 @@
+/* ============================================================
+   轻量聊天室 · 奶油手帐贴纸风
+   为什么换风格：之前的"深色 + 青紫渐变 + 发光"太像 AI 生成的默认模板，
+   这版改成奶油纸底 + 粗描边 + 硬阴影，像贴在手帐上的贴纸，更有人味。
+   布局：左边目录 + 右边内容（手机上自动变成"顶部条 + 下面内容"）
+   ============================================================ */
+
+/* ---------- 主题变量（白天版） ----------
+   为什么用变量：整个界面的颜色都从这一小节"领"，
+   换成夜间模式时不用重写任何样式，只要在 body.night 里换一套变量值就行。
+   --ink-rgb 是"墨黑色"的三原色数字，专门给透明度版用的（rgba 可以拼出来） */
+:root {
+  --ink-rgb: 42, 37, 30;         /* 墨黑：描边、文字、硬阴影全是它 */
+  --ink: rgb(var(--ink-rgb));
+  --page: #f7f2e8;               /* 网页最底下的奶油纸 */
+  --paper: #fffdf6;              /* 大卡纸（聊天框、菜单、弹窗的底色） */
+  --paper-2: #fff8ec;            /* 比卡纸再暖一点的纸（左栏、输入栏） */
+  --paper-3: #f3ecdd;            /* 更深一档的纸（邀请链接底） */
+  --paper-hi: #fff3c4;           /* 便签黄打底（邀请码、菜单悬停） */
+  --white: #ffffff;              /* 纯白：输入框、气泡、圆贴纸 */
+  --line-soft: #e7dfcf;          /* 浅色描边（不重要的分隔线） */
+  --muted: #8a8378;              /* 次要文字 */
+  --faint: #b3a98f;              /* 更淡的文字（时间、占位符） */
+  --text-2: #5b554a;             /* 左栏群名文字 */
+  --grid-dot: #e5dcc8;           /* 背景的圆点网格 */
+  --scroll: #d4c9b2;             /* 滚动条 */
+  /* "荧光笔划重点"背景（标题底下的那道黄）：整段渐变存进变量，夜间好换 */
+  --hl: linear-gradient(transparent 58%, #ffd23f 58%);
+}
+
 /* ---------- 全局基础 ---------- */
 * {
   box-sizing: border-box;
@@ -6,261 +36,786 @@
 }
 
 body {
-  /* 系统自带字体优先，中文用微软雅黑，加载更快也更好看 */
-  font-family: -apple-system, "Microsoft YaHei", sans-serif;
-  background: linear-gradient(135deg, #eef2ff 0%, #fdf2f8 100%);
-  color: #2c2c2a;
-  /* 让整个界面在屏幕正中间 */
+  font-family: "PingFang SC", "HarmonyOS Sans SC", "Source Han Sans CN", "Noto Sans SC",
+               "Microsoft YaHei UI", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  letter-spacing: 0.3px;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.6;
+  color: var(--ink);   /* 主文字用"墨黑色"，比纯黑柔和 */
+
+  /* 背景：奶油纸 + 细细的圆点网格（像笔记本纸），再加两团很淡的暖色，不死板 */
+  background-color: var(--page);
+  background-image:
+    radial-gradient(var(--grid-dot) 1.1px, transparent 1.2px),
+    radial-gradient(700px 500px at 10% 0%, rgba(255, 210, 63, 0.16), transparent 60%),
+    radial-gradient(700px 500px at 95% 100%, rgba(58, 134, 255, 0.10), transparent 60%);
+  background-size: 22px 22px, auto, auto;
+  background-attachment: fixed;
+
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
 }
 
+/* 主容器：一张带粗描边和硬阴影的"大卡纸" */
 #app {
   width: 100%;
-  max-width: 480px;   /* 手机上占满，电脑上最多 480 宽，像微信一样的窄条 */
-  height: 100vh;      /* 手机上铺满整屏 */
-  background: #f7f8fc;
+  max-width: 480px;
+  height: 100vh;
+  background: var(--paper);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
-/* 屏幕宽度大于 600（电脑）时，做成一张居中的卡片，看起来更精致 */
+/* 电脑：卡片带描边和向右下的实心阴影，像一张纸放在桌上 */
 @media (min-width: 600px) {
+  body { padding: 22px; }   /* 给硬阴影留出位置，不然会被裁掉 */
   #app {
-    height: 720px;
-    max-height: 90vh;
-    border-radius: 20px;
-    overflow: hidden;
-    box-shadow: 0 20px 60px rgba(90, 100, 140, 0.18);
+    width: 92vw;
+    max-width: 1040px;
+    height: 88vh;
+    max-height: 860px;
+    border-radius: 22px;
+    border: 2.5px solid var(--ink);
+    box-shadow: 10px 10px 0 rgba(var(--ink-rgb), 0.9);
   }
 }
+
+@media (min-width: 1200px) {
+  #app { max-width: 1180px; }
+}
+
+/* 细滚动条，颜色跟纸张搭配 */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: var(--scroll); border-radius: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
 
 /* ---------- 通用控件 ---------- */
 .input {
   width: 100%;
-  padding: 11px 14px;
-  border: 1px solid #e4e7f0;
-  border-radius: 14px;
+  padding: 12px 15px;
+  border: 2px solid var(--ink);
+  border-radius: 12px;
   font-size: 15px;
+  font-family: inherit;
   outline: none;
-  background: #fff;
+  color: var(--ink);
+  background: var(--white);
+  transition: box-shadow 0.15s, transform 0.15s;
 }
 
+.input::placeholder { color: var(--faint); }
+
+/* 聚焦时不是发光，而是底下多出一块黄色"便签"，跟整体贴纸风统一 */
 .input:focus {
-  border-color: #5b8cff;
+  box-shadow: 3px 3px 0 #ffd23f;
 }
 
+/* 主按钮：便签黄 + 墨黑描边 + 硬阴影，按下去会"陷进去" */
 .btn {
-  padding: 11px 18px;
-  border: none;
-  border-radius: 14px;
-  background: #5b8cff;
-  color: #fff;
+  padding: 12px 20px;
+  border: 2.5px solid var(--ink);
+  border-radius: 12px;
   font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--ink);
   cursor: pointer;
+  background: #ffd23f;
+  box-shadow: 4px 4px 0 var(--ink);
+  transition: transform 0.12s, box-shadow 0.12s;
 }
 
-.btn:active {
-  transform: scale(0.97);
-}
+.btn:hover { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--ink); }
+.btn:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--ink); }
+
+.block-btn { width: 100%; margin-top: 16px; }
 
 .empty {
   text-align: center;
-  color: #a8adbb;
+  color: var(--faint);
   font-size: 13px;
-  padding: 20px 0;
+  padding: 22px 0;
 }
 
-/* ---------- 第一屏：房间列表 ---------- */
-.home {
-  padding: 28px 20px;
-  overflow-y: auto;
+/* ---------- 登录页 ---------- */
+.login-page {
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  overflow-y: auto;
 }
 
+.login-card {
+  width: 100%;
+  max-width: 360px;
+}
+
+/* 标题不用渐变色，改用"荧光笔划重点"的效果，像手写笔记的标题 */
 .title {
-  font-size: 24px;
-  font-weight: 600;
-  text-align: center;
+  display: inline-block;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--ink);
+  background: var(--hl);
+  padding: 0 4px;
 }
 
 .sub {
-  text-align: center;
-  color: #8b90a0;
+  color: var(--muted);
   font-size: 13px;
   margin: 8px 0 22px;
 }
 
-/* 登录/注册那屏：标题和"退出登录"并排 */
-.home-top {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-}
+.avatar-picker { margin: 18px 0; }
 
-/* 右上角那一排小按钮（提示音开关、退出登录） */
-.top-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.sound-toggle {
-  font-size: 17px;
-  cursor: pointer;
-}
-
-.logout {
-  font-size: 13px;
-  color: #8b90a0;
-  cursor: pointer;
-}
-
-/* 未读消息的小红点 */
-.unread-badge {
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
-  border-radius: 10px;
-  background: #e24b4a;
-  color: #fff;
-  font-size: 12px;
-  line-height: 20px;
-  text-align: center;
-  margin-right: 6px;
-}
-
-.logout:active {
-  color: #5b8cff;
-}
-
-/* 占满一整行的按钮，登录/注册用 */
-.block-btn {
-  width: 100%;
-  margin-top: 14px;
-}
-
-/* 登录失败时的红色提示 */
-.error-text {
-  color: #e24b4a;
-  font-size: 13px;
-  margin-top: 12px;
-}
-
-/* "还没有账号？去注册" 这一行 */
-.switch-line {
-  text-align: center;
-  font-size: 13px;
-  color: #5b8cff;
-  margin-top: 16px;
-  cursor: pointer;
-}
-
-/* 头像选择区 */
-.avatar-picker {
-  margin: 16px 0;
-}
-
-.picker-title {
-  font-size: 13px;
-  color: #8b90a0;
-}
+.picker-title { font-size: 13px; color: var(--muted); }
 
 .avatar-grid {
   display: flex;
-  flex-wrap: wrap;   /* 一行放不下自动换行，手机上也不会挤成一团 */
-  gap: 8px;
-  margin-top: 10px;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 11px;
 }
 
 .avatar-option {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--white);
+  border: 2px solid var(--line-soft);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 22px;
   cursor: pointer;
-  border: 2px solid transparent;   /* 默认透明边框，选中时才上色，避免位置跳动 */
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: transform 0.15s, border-color 0.15s, background 0.15s;
 }
 
-/* 当前选中的头像：蓝框 + 淡蓝底 */
+.avatar-option:hover { transform: translateY(-2px); }
+
 .avatar-option.active {
-  border-color: #5b8cff;
-  background: #eef3ff;
+  border-color: var(--ink);
+  background: #ffd23f;
+  box-shadow: 2px 2px 0 var(--ink);
 }
 
-/* 聊天里的头像：如果是表情符号，就用白底细边，表情本身已经够花哨了 */
-.avatar.emoji {
-  font-size: 20px;
-  border: 1px solid #eef0f5;
+.error-text {
+  color: #e03131;
+  font-size: 13px;
+  margin-top: 12px;
 }
 
-.room-list {
-  margin: 18px 0;
+.switch-line {
+  text-align: center;
+  font-size: 13px;
+  color: #3a86ff;
+  margin-top: 18px;
+  cursor: pointer;
 }
 
-.room-item {
+.switch-line:hover { text-decoration: underline; }
+
+/* ---------- 主体：左目录 + 右内容 ---------- */
+.main {
+  flex: 1;
+  display: flex;
+  min-height: 0;   /* 让里面的滚动区能正常工作 */
+}
+
+/* ---------- 左栏 ---------- */
+.sidebar {
+  width: 250px;
+  flex-shrink: 0;
+  background: var(--paper-2);
+  border-right: 2.5px solid var(--ink);
+  display: flex;
+  flex-direction: column;
+  padding: 16px 12px;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+/* 左上角：我 */
+.me {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 14px 16px;
-  background: #fff;
+  padding: 10px;
   border-radius: 14px;
-  margin-bottom: 10px;
-  cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  background: var(--white);
+  border: 2px solid var(--ink);
+  box-shadow: 3px 3px 0 rgba(var(--ink-rgb), 0.9);
 }
 
-.room-item:active {
-  background: #f2f4fa;
+.me-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--white);
+  border: 2px solid var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
 }
 
-.room-icon {
-  font-size: 18px;
-}
+.me-info { flex: 1; min-width: 0; }
 
-.room-main {
-  flex: 1;   /* 占满中间，把箭头挤到最右边 */
-}
-
-.room-name {
+.me-name {
   font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;   /* 名字太长就显示成"..." */
 }
 
-/* 房间名下面那行小字：邀请码。房间可以重名，靠这个区分 */
-.room-code {
+.me-exit {
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.me-exit:hover { color: #e03131; }
+
+.sound-toggle { font-size: 16px; cursor: pointer; }
+
+/* 分区 */
+.side-section { display: flex; flex-direction: column; gap: 6px; }
+
+.side-title {
   font-size: 11px;
-  color: #a8adbb;
+  color: var(--faint);
+  letter-spacing: 1.5px;
+  padding: 0 8px;
+  margin-bottom: 2px;
+}
+
+.side-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  color: var(--text-2);
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+.side-item:hover { background: var(--white); border-color: var(--line-soft); }
+
+/* 当前选中的那一项：变成一张黄色"贴纸" */
+.side-item.active {
+  background: #ffd23f;
+  border-color: var(--ink);
+  color: var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.side-icon { font-size: 16px; }
+
+.side-name {
+  flex: 1;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.side-empty {
+  font-size: 12px;
+  color: var(--faint);
+  padding: 6px 10px;
+}
+
+/* 底部：建群 + 邀请码 */
+.side-bottom {
+  margin-top: auto;   /* 推到最下面 */
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 2px solid var(--line-soft);
+}
+
+.side-row { display: flex; gap: 6px; }
+
+.side-input { padding: 9px 12px; font-size: 13px; }
+
+.side-btn {
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  padding: 0 13px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+  background: var(--white);
+  transition: background 0.15s;
+}
+
+.side-btn:hover { background: #ffd23f; }
+
+/* 未读小红点：西瓜红 + 描边 */
+.unread-badge {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: #ff5c38;
+  border: 2px solid var(--ink);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  text-align: center;
+}
+
+/* ---------- 右栏 ---------- */
+.content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 什么都没选：空白引导 */
+.blank {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--faint);
+}
+
+.blank-icon { font-size: 44px; opacity: 0.75; }
+.blank-text { font-size: 15px; color: var(--muted); }
+.blank-sub { font-size: 13px; }
+
+/* ---------- 公开大厅：贴纸卡片广场 ---------- */
+.hall {
+  flex: 1;
+  overflow-y: auto;
+  padding: 26px 24px;
+}
+
+.hall-title {
+  display: inline-block;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--hl);
+  padding: 0 4px;
+}
+
+.hall-sub {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 6px 0 22px;
+}
+
+/* 宽屏一行两张卡，窄了自动变一张 */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 16px;
+}
+
+/* 卡片本体：浅色底 + 粗描边 + 硬阴影，轮流微微歪一点，像随手贴上去的 */
+.tile {
+  min-height: 168px;
+  border-radius: 18px;
+  padding: 18px 150px 18px 20px;   /* 右边留出插画的位置 */
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  position: relative;
+  border: 2.5px solid var(--ink);
+  box-shadow: 5px 5px 0 rgba(var(--ink-rgb), 0.9);
+  transition: transform 0.18s, box-shadow 0.18s;
+  overflow: hidden;
+}
+
+.tile:nth-child(odd)  { transform: rotate(-0.5deg); }
+.tile:nth-child(even) { transform: rotate(0.5deg); }
+
+/* 鼠标放上去：摆正 + 浮起来 */
+.tile:hover {
+  transform: translate(-2px, -2px) rotate(0deg);
+  box-shadow: 8px 8px 0 rgba(var(--ink-rgb), 0.9);
+}
+
+.tile:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 rgba(var(--ink-rgb), 0.9); }
+
+/* 图标装进一个白色圆形"贴纸"里 */
+.tile-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--white);
+  border: 2.5px solid var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+  z-index: 1;
+}
+
+.tile-text { flex: 1; position: relative; z-index: 1; }
+
+.tile-name {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  color: var(--ink);
+}
+
+.tile-desc {
+  font-size: 12px;
+  color: var(--muted);
   margin-top: 3px;
 }
 
-.room-arrow {
-  color: #c3c7d4;
+.tile-go {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--ink);
+  position: relative;
+  z-index: 1;
+}
+
+/* 插画容器：每张卡右边这块区域是"小舞台"，里面用 CSS 画画 */
+.tile-art {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 120px;
+  height: 110px;
+  pointer-events: none;   /* 插画只是装饰，不挡点击 */
+}
+
+/* ============ 每个群的专属插画（全部 CSS 画的，没有图片） ============ */
+
+/* --- 游戏群：一台掌机，屏幕里的方块真的会滚动 --- */
+.tile-game { background: #dbe7ff; }
+
+/* 机身：十字键、AB 键、扬声器全是用一层层背景叠出来的 */
+.tile-game .tile-art::before {
+  content: "";
+  position: absolute;
+  left: 6px; top: 20px;
+  width: 108px; height: 70px;
+  border-radius: 12px 12px 20px 12px;
+  border: 2.5px solid var(--ink);
+  box-shadow: 3px 3px 0 rgba(var(--ink-rgb), 0.9);
+  /* 一层层往上叠（写在前面的在最上面）：十字键 → AB 键 → 扬声器斜纹 → 机身 */
+  background:
+    linear-gradient(#3a3f4d, #3a3f4d) no-repeat 14px 42px / 16px 6px,
+    linear-gradient(#3a3f4d, #3a3f4d) no-repeat 19px 36px / 6px 18px,
+    radial-gradient(circle, #ff5c38 0 5px, transparent 6px) no-repeat 76px 38px / 12px 12px,
+    radial-gradient(circle, #3a86ff 0 5px, transparent 6px) no-repeat 89px 31px / 12px 12px,
+    repeating-linear-gradient(115deg, rgba(var(--ink-rgb), 0.35) 0 2px, transparent 2px 6px) no-repeat 74px 52px / 28px 12px,
+    linear-gradient(160deg, #eef1f7, #b9c2d4);
+}
+
+/* 屏幕：复古绿底 + 一排深色"小怪兽方块"不停往左滚，像真的在打小游戏 */
+.tile-game .tile-art::after {
+  content: "";
+  position: absolute;
+  left: 36px; top: 28px;
+  width: 46px; height: 30px;
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+  background:
+    repeating-linear-gradient(90deg, rgba(30, 41, 59, 0.75) 0 5px, transparent 5px 15px) 0 0 / 46px 30px,
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.10) 0 2px, transparent 2px 4px),
+    linear-gradient(#9bbd5a, #8aa94d);
+  animation: gb-scroll 1.4s linear infinite;
+}
+
+@keyframes gb-scroll {
+  to { background-position: 46px 0, 0 0, 0 0; }
+}
+
+/* --- 二次元群：一台粉色复古电视机，屏幕在播彩色画面 --- */
+.tile-acg { background: #ffe1ee; }
+
+/* 天线（一根就够有味道了） */
+.tile-acg::before {
+  content: "";
+  position: absolute;
+  right: 88px; top: 6px;
+  width: 3px; height: 34px;
+  border-radius: 2px;
+  background: var(--ink);
+  transform: rotate(26deg);
+}
+
+/* 天线顶端的小星星，一闪一闪 */
+.tile-acg::after {
+  content: "";
+  position: absolute;
+  right: 104px; top: 10px;
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: #ffd23f;
+  border: 2px solid var(--ink);
+  animation: sparkle 1.6s ease-in-out infinite;
+}
+
+@keyframes sparkle {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.5); }
+}
+
+/* 机身：粉色外壳 + 右边一颗白色旋钮 */
+.tile-acg .tile-art::before {
+  content: "";
+  position: absolute;
+  left: 10px; top: 24px;
+  width: 100px; height: 70px;
+  border-radius: 14px;
+  border: 2.5px solid var(--ink);
+  box-shadow: 3px 3px 0 rgba(var(--ink-rgb), 0.9);
+  background:
+    radial-gradient(circle, var(--white) 0 4px, var(--ink) 4px 6px, transparent 7px) no-repeat 82px 14px / 14px 14px,
+    radial-gradient(circle, var(--white) 0 3px, var(--ink) 3px 5px, transparent 6px) no-repeat 84px 32px / 12px 12px,
+    linear-gradient(160deg, #ffd7e6, #ffb0cf);
+}
+
+/* 屏幕：彩色渐变不停流动 + 扫描线，像在放动画片 */
+.tile-acg .tile-art::after {
+  content: "";
+  position: absolute;
+  left: 19px; top: 33px;
+  width: 64px; height: 48px;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.20) 0 2px, transparent 2px 4px),
+    linear-gradient(120deg, #ff9a9e, #fad0c4, #a18cd1, #84fab0, #ff9a9e);
+  background-size: auto, 300% 100%;
+  animation: tv-play 4s linear infinite;
+}
+
+@keyframes tv-play {
+  to { background-position: 0 0, 300% 0; }
+}
+
+/* --- 八卦群：一个大喇叭，声波一圈圈扩散 --- */
+.tile-gossip { background: #ffe4d6; }
+
+/* 上面三个小点轮流冒头，像叽叽喳喳的议论声 */
+.tile-gossip::before {
+  content: "";
+  position: absolute;
+  right: 96px; top: 20px;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--ink);
+  box-shadow: 12px -6px 0 var(--ink), 24px 0 0 var(--ink);
+  animation: pop-dots 1.2s ease-in-out infinite;
+}
+
+@keyframes pop-dots {
+  0%, 100% { opacity: 0.25; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-3px); }
+}
+
+/* 喇叭本体：用 clip-path 裁出梯形喇叭口，drop-shadow 代替描边 */
+.tile-gossip .tile-art::before {
+  content: "";
+  position: absolute;
+  left: 8px; top: 36px;
+  width: 72px; height: 52px;
+  background: linear-gradient(160deg, #ff8a5c, #ff5c38);
+  clip-path: polygon(0 30%, 50% 30%, 100% 0, 100% 100%, 50% 70%, 0 70%);
+  filter: drop-shadow(2.5px 2.5px 0 var(--ink));
+}
+
+/* 声波音圈：一个圆弧不停放大淡出 */
+.tile-gossip .tile-art::after {
+  content: "";
+  position: absolute;
+  left: 76px; top: 40px;
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: var(--ink);
+  border-right-color: var(--ink);
+  transform: rotate(45deg);
+  animation: mega-pulse 1.4s ease-out infinite;
+}
+
+@keyframes mega-pulse {
+  from { opacity: 1; scale: 0.6; }
+  to { opacity: 0; scale: 1.5; }
+}
+
+/* --- 运动群：一颗篮球真的在弹跳，底下影子跟着变大变小 --- */
+.tile-sport { background: #e2f5df; }
+
+/* 底线一道圆弧，像球场的中圈 */
+.tile-sport::before {
+  content: "";
+  position: absolute;
+  right: 6px; bottom: -46px;
+  width: 150px; height: 90px;
+  border-radius: 50%;
+  border: 3px solid rgba(var(--ink-rgb), 0.18);
+}
+
+/* 球：橙色 + 十字球纹，上下弹跳 */
+.tile-sport .tile-art::before {
+  content: "";
+  position: absolute;
+  left: 38px; top: 18px;
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  border: 2.5px solid var(--ink);
+  background:
+    linear-gradient(var(--ink), var(--ink)) no-repeat center / 2.5px 100%,
+    linear-gradient(var(--ink), var(--ink)) no-repeat center / 100% 2.5px,
+    radial-gradient(circle at 35% 30%, #ffb066, #ff8a3d);
+  animation: ball-bounce 0.85s cubic-bezier(0.5, 0, 0.5, 1) infinite alternate;
+}
+
+@keyframes ball-bounce {
+  from { transform: translateY(0); }
+  to { transform: translateY(34px); }
+}
+
+/* 影子：球落地时影子变大变深 */
+.tile-sport .tile-art::after {
+  content: "";
+  position: absolute;
+  left: 40px; top: 94px;
+  width: 38px; height: 8px;
+  border-radius: 50%;
+  background: rgba(var(--ink-rgb), 0.22);
+  animation: shadow-pulse 0.85s cubic-bezier(0.5, 0, 0.5, 1) infinite alternate;
+}
+
+@keyframes shadow-pulse {
+  from { transform: scaleX(0.55); opacity: 0.35; }
+  to { transform: scaleX(1.15); opacity: 0.8; }
+}
+
+/* --- 学习群：一本笔记本 + 一支会晃的铅笔 --- */
+.tile-study { background: #ddf3ea; }
+
+/* 笔记本：白纸 + 红竖线 + 蓝横线，稍微歪一点 */
+.tile-study .tile-art::before {
+  content: "";
+  position: absolute;
+  left: 16px; top: 16px;
+  width: 60px; height: 76px;
+  border: 2.5px solid var(--ink);
+  border-radius: 6px;
+  box-shadow: 3px 3px 0 rgba(var(--ink-rgb), 0.9);
+  transform: rotate(-4deg);
+  background:
+    linear-gradient(#ff8fab, #ff8fab) no-repeat 12px 0 / 2px 100%,
+    repeating-linear-gradient(180deg, #bcd3f7 0 2px, transparent 2px 12px) no-repeat 0 14px / 100% 58px,
+    var(--white);
+}
+
+/* 铅笔：橡皮、笔杆、木头、笔尖四段拼出来，来回晃像在写字 */
+.tile-study .tile-art::after {
+  content: "";
+  position: absolute;
+  right: 18px; top: 26px;
+  width: 9px; height: 56px;
+  border: 2px solid var(--ink);
+  border-radius: 3px;
+  background:
+    linear-gradient(#ff8fab, #ff8fab) no-repeat 0 0 / 100% 8px,
+    linear-gradient(#f6c453, #f6c453) no-repeat 0 8px / 100% 34px,
+    linear-gradient(#f2e3c6, #f2e3c6) no-repeat 0 42px / 100% 8px,
+    linear-gradient(var(--ink), var(--ink)) no-repeat 0 50px / 100% 4px;
+  transform: rotate(36deg);
+  animation: pencil-wobble 1.5s ease-in-out infinite;
+}
+
+@keyframes pencil-wobble {
+  0%, 100% { transform: rotate(30deg); }
+  50% { transform: rotate(44deg); }
+}
+
+/* --- 音乐群：一张黑胶唱片真的在转，旁边带唱臂 --- */
+.tile-music { background: #ece4ff; }
+
+/* 一个跳动的音符 */
+.tile-music::before {
+  content: "♪";
+  position: absolute;
+  right: 104px; top: 12px;
   font-size: 20px;
+  font-weight: 700;
+  color: var(--ink);
+  animation: note-float 1.8s ease-in-out infinite;
 }
 
-.new-room {
-  display: flex;
-  gap: 8px;
+@keyframes note-float {
+  0%, 100% { transform: translateY(0) rotate(-6deg); opacity: 0.9; }
+  50% { transform: translateY(-7px) rotate(8deg); opacity: 1; }
 }
 
-.new-room .input {
-  flex: 1;
+/* 唱片：一圈圈纹路 + 黄色中心标，不停旋转 */
+.tile-music .tile-art::before {
+  content: "";
+  position: absolute;
+  left: 26px; top: 20px;
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  border: 2.5px solid var(--ink);
+  box-shadow: 3px 3px 0 rgba(var(--ink-rgb), 0.9);
+  background:
+    radial-gradient(circle, #ffd23f 0 10px, var(--ink) 10px 12px, transparent 12px),
+    repeating-radial-gradient(circle, #33302a 0 2px, #4a463e 2px 5px);
+  animation: spin 3.2s linear infinite;
 }
 
-/* ---------- 第二屏：聊天界面 ---------- */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 唱臂：红色支点 + 一根细杆 */
+.tile-music .tile-art::after {
+  content: "";
+  position: absolute;
+  right: 6px; top: 14px;
+  width: 14px; height: 50px;
+  background:
+    radial-gradient(circle, #ff5c38 0 5px, var(--ink) 5px 7px, transparent 7px) no-repeat center 0 / 14px 14px,
+    linear-gradient(var(--ink), var(--ink)) no-repeat center 10px / 3px 38px;
+  transform: rotate(-28deg);
+  transform-origin: top center;
+}
+
+/* 兜底风格（以后加了新群没配样式就用它） */
+.tile-plain { background: var(--paper-2); }
+
+/* ---------- 聊天界面 ---------- */
 .chat {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  height: 100%;
-  /* 加这句是为了让邀请面板能盖在这个聊天界面上面
-     （面板用的是绝对定位，它会相对最近一个有定位的父元素来摆位置） */
+  min-height: 0;
+  /* 邀请面板要盖在聊天界面上，绝对定位找的是最近一个"有定位"的父元素 */
   position: relative;
 }
 
@@ -268,279 +823,149 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 14px;
-  background: #fff;
-  border-bottom: 1px solid #eef0f5;
+  padding: 13px 18px;
+  background: var(--paper);
+  border-bottom: 2.5px solid var(--ink);
 }
 
-.back {
-  border: none;
-  background: #f2f4fa;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  font-size: 20px;
-  line-height: 1;
-  color: #6b7080;
-  cursor: pointer;
-}
+.chat-title { flex: 1; }
 
-.header-info {
-  flex: 1;
-}
-
-.header-name {
-  font-size: 16px;
-  font-weight: 600;
-}
+.header-name { font-size: 16px; font-weight: 700; letter-spacing: 0.4px; }
 
 .header-state {
   font-size: 12px;
-  color: #8b90a0;
+  color: var(--muted);
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   margin-top: 2px;
 }
 
-/* 连接状态的小圆点：绿=已连接，灰=断开 */
+/* 在线状态点 */
 .dot {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   display: inline-block;
+  border: 1.5px solid var(--ink);
 }
+.dot.on { background: #2ec4b6; }
+.dot.off { background: var(--scroll); }
 
-.dot.on { background: #31c48d; }
-.dot.off { background: #c9ccd4; }
-
-.header-me {
+/* 头部三个按钮：彩色小贴纸 */
+.invite-btn, .dismiss-btn, .leave-btn {
+  border: 2px solid var(--ink);
   font-size: 13px;
-  color: #8b90a0;
-  background: #f2f4fa;
-  padding: 4px 10px;
+  font-family: inherit;
+  padding: 6px 14px;
   border-radius: 10px;
+  cursor: pointer;
+  color: var(--ink);
+  transition: transform 0.12s, box-shadow 0.12s;
+  box-shadow: 2px 2px 0 var(--ink);
 }
+.invite-btn { background: #b9d4ff; }
+.dismiss-btn { background: #ffc9bd; margin-left: 6px; }
+.leave-btn { background: #efe9dc; margin-left: 6px; }
+.invite-btn:hover, .dismiss-btn:hover, .leave-btn:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--ink); }
+.invite-btn:active, .dismiss-btn:active, .leave-btn:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--ink); }
 
-/* 消息区：占满中间剩余空间，消息多了可以滚动 */
 .msg-list {
   flex: 1;
   overflow-y: auto;
-  padding: 16px 14px;
+  padding: 18px 18px;
 }
 
 .msg-row {
   display: flex;
-  gap: 8px;
-  margin-bottom: 14px;
+  gap: 9px;
+  margin-bottom: 15px;
   align-items: flex-start;
-  animation: pop 0.22s ease-out;   /* 新消息冒出来的小动画 */
+  animation: pop 0.24s ease-out;
 }
 
-/* 自己发的消息：整行反过来排，头像跑到右边 */
-.msg-row.mine {
-  flex-direction: row-reverse;
-}
+/* 自己发的：整行反过来，头像到右边 */
+.msg-row.mine { flex-direction: row-reverse; }
 
 @keyframes pop {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: none; }
 }
 
 .avatar {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   color: #fff;
   font-size: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;   /* 不允许被挤扁 */
+  flex-shrink: 0;
+  border: 2px solid var(--ink);
+}
+
+.avatar.emoji {
+  font-size: 20px;
+  background: var(--white);
 }
 
 .bubble-wrap {
-  max-width: 74%;
+  /* 窄屏不撑破，宽屏也不会被拉成老长一行 */
+  max-width: min(74%, 560px);
 }
 
-.msg-row.mine .bubble-wrap {
-  text-align: right;   /* 自己发的，昵称和时间靠右 */
-}
+.msg-row.mine .bubble-wrap { text-align: right; }
 
 .sender {
   font-size: 12px;
-  color: #9aa0b0;
-  margin: 0 4px 4px;
+  color: var(--muted);
+  margin: 0 5px 5px;
 }
 
 .bubble {
   display: inline-block;
-  padding: 9px 13px;
+  padding: 10px 14px;
   border-radius: 16px;
-  background: #fff;
   font-size: 15px;
-  line-height: 1.5;
+  line-height: 1.55;
   text-align: left;
-  word-break: break-word;   /* 长句子自动换行，不会撑破气泡 */
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  word-break: break-word;
+  background: var(--white);
+  border: 2px solid var(--ink);
+  color: var(--ink);
+  box-shadow: 2.5px 2.5px 0 rgba(var(--ink-rgb), 0.9);
 }
 
-/* 自己的气泡用蓝色，跟别人的白气泡区分开 */
+/* 自己发的气泡：绿豆沙色（像微信那抹绿），黑字 */
 .msg-row.mine .bubble {
-  background: #5b8cff;
-  color: #fff;
+  background: #b5e96f;
 }
 
 .time {
   font-size: 11px;
-  color: #b3b8c6;
-  margin: 4px 4px 0;
+  color: var(--faint);
+  margin: 5px 5px 0;
 }
 
-/* 被撤回的消息：灰色斜体，跟正常内容明显区分开 */
-.recalled-text {
-  color: #a8adbb;
-  font-style: italic;
-}
+.read-flag { margin-left: 7px; color: var(--faint); }
 
-/* 自己消息下面的"已读/未读" */
-.read-flag {
-  margin-left: 6px;
-  color: #a8adbb;
-}
+.recall-link { margin-left: 9px; color: var(--faint); cursor: pointer; }
+.recall-link:hover { color: #e03131; }
 
-/* "撤回"两个小字，点一下就能撤。颜色淡一点，不抢消息的风头 */
-.recall-link {
-  margin-left: 8px;
-  color: #b9bed0;
-  cursor: pointer;
-}
+.recalled-text { color: var(--faint); font-style: italic; }
 
-.recall-link:active {
-  color: #e24b4a;
-}
-
-/* 聊天页右上角的"邀请"按钮 */
-.invite-btn {
-  border: none;
-  background: #eef3ff;
-  color: #5b8cff;
-  font-size: 13px;
-  padding: 6px 12px;
-  border-radius: 12px;
-  cursor: pointer;
-  margin-right: 6px;
-}
-
-/* 解散按钮：只有房主看得到，用红色跟"邀请"区分开 */
-.dismiss-btn {
-  border: none;
-  background: #fdeeee;
-  color: #e24b4a;
-  font-size: 13px;
-  padding: 6px 12px;
-  border-radius: 12px;
-  cursor: pointer;
-  margin-right: 6px;
-}
-
-/* 退群按钮：普通成员看到的那个，用中性色，跟红色的"解散"区分开 */
-.leave-btn {
-  border: none;
-  background: #f1efe8;
-  color: #6b7080;
-  font-size: 13px;
-  padding: 6px 12px;
-  border-radius: 12px;
-  cursor: pointer;
-  margin-right: 6px;
-}
-
-/* 邀请面板：一层半透明遮罩，中间放一张卡片 */
-.invite-mask {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(30, 34, 50, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-}
-
-.invite-card {
-  width: 100%;
-  background: #fff;
-  border-radius: 18px;
-  padding: 22px 18px;
-  text-align: center;
-}
-
-.invite-card h3 {
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.invite-tip {
-  font-size: 12px;
-  color: #8b90a0;
-  margin: 8px 0 16px;
-}
-
-/* 邀请码：大字、拉开间距，方便念给别人听 */
-.invite-code {
-  font-size: 30px;
-  font-weight: 600;
-  letter-spacing: 6px;
-  color: #5b8cff;
-  background: #f4f7ff;
-  border-radius: 14px;
-  padding: 14px 0;
-  margin-bottom: 12px;
-}
-
-.invite-link {
-  font-size: 12px;
-  color: #8b90a0;
-  background: #f7f8fc;
-  border-radius: 10px;
-  padding: 10px;
-  word-break: break-all;   /* 链接太长，允许从中间断开换行 */
-  margin-bottom: 14px;
-}
-
-.copy-tip {
-  font-size: 12px;
-  color: #4ecb8f;
-  margin-top: 10px;
-}
-
-/* 次要按钮：白底描边，用来做"关闭"这种不那么重要的操作 */
-.ghost-btn {
-  background: #fff;
-  color: #8b90a0;
-  border: 1px solid #e4e7f0;
-  width: 100%;
-  margin-top: 10px;
-}
-
-/* "某某正在输入"提示条。高度写死，避免出现/消失时把消息区顶得一跳一跳 */
+/* ---------- "正在输入" ---------- */
 .typing-bar {
   height: 22px;
-  padding: 0 16px;
-  font-size: 12px;
-  color: #8b90a0;
-  background: #f7f8fc;
+  padding: 0 19px;
   display: flex;
   align-items: center;
 }
 
-/* 三个小点轮流闪，看起来像在打字 */
-/* 提示文字：用主色调 + 淡入动画，让它更容易被注意到 */
 .typing-text {
-  color: #5b8cff;
+  color: #3a86ff;
+  font-size: 12px;
   animation: fadein 0.2s ease-out;
 }
 
@@ -549,11 +974,7 @@ body {
   to { opacity: 1; transform: none; }
 }
 
-.typing-bar i {
-  font-style: normal;
-  animation: blink 1.2s infinite;
-}
-
+.typing-bar i { font-style: normal; animation: blink 1.2s infinite; }
 .typing-bar i:nth-child(2) { animation-delay: 0.2s; }
 .typing-bar i:nth-child(3) { animation-delay: 0.4s; }
 
@@ -562,29 +983,776 @@ body {
   30% { opacity: 1; }
 }
 
-/* 底部输入栏 */
+/* ---------- 输入栏 ---------- */
 .input-bar {
   display: flex;
-  gap: 8px;
-  padding: 10px 12px;
-  background: #fff;
-  border-top: 1px solid #eef0f5;
+  gap: 9px;
+  padding: 12px 16px;
+  background: var(--paper-2);
+  border-top: 2.5px solid var(--ink);
 }
 
-.chat-input {
-  flex: 1;
-}
+.chat-input { flex: 1; }
 
+/* 发送按钮：西瓜红，跟主按钮区分开 */
 .send {
-  border: none;
-  border-radius: 14px;
-  padding: 0 20px;
-  background: #5b8cff;
-  color: #fff;
+  border: 2.5px solid var(--ink);
+  border-radius: 12px;
+  padding: 0 22px;
   font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  color: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+  background: #ff5c38;
+  box-shadow: 4px 4px 0 var(--ink);
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+
+.send:hover { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--ink); }
+.send:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--ink); }
+
+/* 没加入时：把输入框换成提示 + 加入按钮 */
+.join-bar { align-items: center; }
+
+.join-tip {
+  flex: 1;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* ---------- 邀请面板 ---------- */
+.invite-mask {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(var(--ink-rgb), 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+}
+
+.invite-card {
+  width: 100%;
+  max-width: 340px;
+  background: var(--paper);
+  border: 2.5px solid var(--ink);
+  border-radius: 18px;
+  padding: 24px 20px;
+  text-align: center;
+  box-shadow: 8px 8px 0 rgba(var(--ink-rgb), 0.9);
+}
+
+.invite-card h3 { font-size: 16px; font-weight: 700; }
+
+.invite-tip { font-size: 12px; color: var(--muted); margin: 9px 0 17px; }
+
+/* 邀请码：便签黄底 + 虚线框，像一张可以撕下来的小票 */
+.invite-code {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 7px;
+  color: var(--ink);
+  background: var(--paper-hi);
+  border: 2px dashed var(--ink);
+  border-radius: 12px;
+  padding: 14px 0;
+  margin-bottom: 13px;
+}
+
+.invite-link {
+  font-size: 12px;
+  color: var(--muted);
+  background: var(--paper-3);
+  border-radius: 11px;
+  padding: 11px;
+  word-break: break-all;
+  margin-bottom: 15px;
+}
+
+.copy-tip { font-size: 12px; color: #1d9e6b; margin-top: 11px; }
+
+/* 次要按钮：白底描边款，用来做"关闭" */
+.ghost-btn {
+  width: 100%;
+  margin-top: 11px;
+  background: var(--white);
+  color: var(--ink);
+}
+
+/* ---------- 右键消息的小菜单 ---------- */
+/* 透明遮罩铺满全屏：它的唯一作用是"点菜单外面任何地方都把菜单关掉" */
+.menu-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+}
+
+/* 菜单本体：跟邀请卡片同一套风格（米白底 + 黑描边 + 硬阴影），
+   位置由 app.js 里算好的 x/y 决定（:style 绑定） */
+.msg-menu {
+  position: fixed;
+  min-width: 172px;
+  background: var(--paper);
+  border: 2.5px solid var(--ink);
+  border-radius: 14px;
+  padding: 6px;
+  box-shadow: 5px 5px 0 rgba(var(--ink-rgb), 0.9);
+  z-index: 61;
+}
+
+.menu-item {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  padding: 10px 12px;
+  border-radius: 9px;
   cursor: pointer;
 }
 
-.send:active {
-  transform: scale(0.97);
+/* 手指/鼠标碰到时亮一下，让人知道"点到的是这个" */
+.menu-item:hover { background: var(--paper-hi); }
+
+/* 撤回属于"危险操作"，用红色提醒 */
+.menu-item.is-danger { color: #c2554a; }
+.menu-item.is-danger:hover { background: rgba(194, 85, 74, 0.12); }
+
+/* ---------- 引用相关 ---------- */
+/* 气泡里的引用块：灰底小字 + 左边一道竖线，像信纸里夹的一句话 */
+.quote-box {
+  font-size: 12px;
+  color: var(--muted);
+  background: rgba(var(--ink-rgb), 0.06);
+  border-left: 3px solid rgba(var(--ink-rgb), 0.35);
+  border-radius: 4px;
+  padding: 5px 8px;
+  margin-bottom: 6px;
 }
+
+/* 输入框上方的"引用条"：正在引用哪条、点 × 取消 */
+.quote-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--paper);
+  border: 1.5px solid rgba(var(--ink-rgb), 0.35);
+  border-radius: 10px;
+  padding: 6px 12px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.quote-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;   /* 太长显示省略号，不把输入框顶歪 */
+  white-space: nowrap;
+}
+
+.quote-close {
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* ---------- 复制成功的小提示 ---------- */
+/* 一颗黑色小药丸飘在屏幕下方，1.6 秒自己消失（app.js 里的定时器控制） */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 40px;
+  transform: translateX(-50%);
+  background: rgba(var(--ink-rgb), 0.9);
+  color: var(--paper);
+  font-size: 13px;
+  padding: 9px 18px;
+  border-radius: 999px;
+  z-index: 80;
+  pointer-events: none;   /* 不挡鼠标：提示飘着也不影响你点别的东西 */
+}
+
+/* ============================================================
+   拍一拍特效（每个群一套）
+   特效层：铺满全屏、不挡鼠标，所有动画元素都是 JS 临时塞进来的，
+   播完自动删除，所以平时这层是空的、完全不碍事
+   ============================================================ */
+
+/* 双击头像拍人：禁掉手机浏览器的"双击缩放页面"，
+   不然手指快速点两下，页面先放大了、拍人反而没触发 */
+.avatar {
+  touch-action: manipulation;
+  cursor: pointer;   /* 电脑上把鼠标放上去变小手，暗示"能点" */
+
+  /* 双击的浏览器默认行为是"选中文字"，
+     不禁掉的话双击头像会选中旁边的字，Edge 还会弹出它自带的复制/搜索小工具条 */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.fx-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 85;
+}
+
+/* 锚点容器：被 JS 每帧钉在"被拍的那个头像"的中心上（0 宽 0 高，不占地方）。
+   所有动画元素都画在它里面，所以它一动，里面的东西就全体跟着动——
+   滚动消息列表时特效这才不会傻站在原来的位置 */
+.fx-root {
+  position: fixed;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 86;
+}
+
+/* 被拍的头像抖三抖 */
+.fx-shake {
+  animation: fx-shake-k .6s ease;
+}
+
+@keyframes fx-shake-k {
+  0%, 100% { transform: none; }
+  20% { transform: translate(-3px, 1px) rotate(-5deg); }
+  40% { transform: translate(3px, -1px) rotate(5deg); }
+  60% { transform: translate(-2px, 2px) rotate(-4deg); }
+  80% { transform: translate(2px, -2px) rotate(4deg); }
+}
+
+/* 顶部字幕："张三 拍了拍 李四" */
+.fx-caption {
+  position: fixed;
+  left: 50%;
+  top: 13%;
+  background: rgba(var(--ink-rgb), 0.88);
+  color: var(--paper);
+  font-size: 13px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  animation: fx-cap-k 1.9s ease forwards;
+}
+
+@keyframes fx-cap-k {
+  0%   { opacity: 0; transform: translate(-50%, -10px); }
+  12%  { opacity: 1; transform: translate(-50%, 0); }
+  78%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* 通用小零件：往外飘的 emoji（方向由 JS 里的 --dx/--dy 决定） */
+.fx-float {
+  position: absolute;
+  font-size: 26px;
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  animation: fx-float-k 1.05s ease-out forwards;
+}
+
+@keyframes fx-float-k {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(.4); }
+  18%  { opacity: 1; transform: translate(calc(-50% + var(--dx, 0px) * .2), calc(-50% + var(--dy, 0px) * .2)) scale(1.15); }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% + var(--dy, 0px))) scale(.85); }
+}
+
+/* 炸开的小碎片（西瓜瓣那些） */
+.fx-burst {
+  position: absolute;
+  font-size: 22px;
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  animation: fx-burst-k .85s ease-out forwards;
+}
+
+@keyframes fx-burst-k {
+  0%   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% + var(--dy, 0px))) scale(.6) rotate(90deg); }
+}
+
+/* 弹跳字：私密群通用版用的"拍了拍" */
+.fx-poke-word {
+  position: absolute;
+  font-size: 14px;
+  font-weight: 700;
+  color: #ff77a9;
+  opacity: 0;
+  animation: fx-word-k 1.05s ease forwards;
+}
+
+@keyframes fx-word-k {
+  0%   { opacity: 0; transform: translate(-50%, -30%) scale(.5); }
+  25%  { opacity: 1; transform: translate(-50%, -50%) scale(1.25); }
+  45%  { transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -95%) scale(1); }
+}
+
+/* 葱本体：做成"荧光棒"——亮绿到白的发光渐变，
+   外面套两层绿色光晕（box-shadow），转起来就像演唱会里挥的荧光棒。
+   轴心在葱白底部（transform-origin: bottom center），转圈时根部纹丝不动 */
+.fx-leek {
+  position: absolute;
+  width: 10px;
+  height: 44px;
+  border-radius: 50% 50% 40% 40% / 60% 60% 22% 22%;
+  background: linear-gradient(180deg, #f2ffd4 0%, #aef25a 30%, #4fd463 60%, #eafff0 88%, var(--white) 100%);
+  /* 两层光晕：贴身一圈亮绿，外面一大圈散光 */
+  box-shadow:
+    0 0 8px rgba(174, 242, 90, .9),
+    0 0 20px rgba(90, 220, 130, .55),
+    0 0 36px rgba(80, 210, 140, .3);
+  transform-origin: bottom center;   /* 轴心 = 葱白底部 = 圆锥顶点 */
+  opacity: 0;
+  /* 两段动画同时跑：spin 管转圈，glow 管荧光棒一闪一闪的呼吸感 */
+  animation:
+    fx-leek-spin-k 1.75s linear forwards,
+    fx-leek-glow-k .45s ease-in-out infinite alternate;
+}
+
+/* 亮度呼吸：忽亮忽暗，荧光棒闪的质感全在这 */
+@keyframes fx-leek-glow-k {
+  from { filter: brightness(1) saturate(1.05); }
+  to   { filter: brightness(1.45) saturate(1.3); }
+}
+
+/* 甩马尾：转两圈（rotateY 0 → 720 度）
+   变换的写法从右往左依次作用：
+     rotateX(倾斜角)  ← 先把葱身往外掰，这就是圆锥的母线
+     rotateY(转圈角)  ← 再绕竖直轴转，葱尖画圆，葱身扫出圆锥面
+     rotate(--lean)   ← 最后套上双马尾往两边撇的角度
+     skewX(弯曲)      ← 最里层，把葱掰弯一点，显得柔软
+   rotateX 的角度在转的过程中忽大忽小 = 甩头发那种一松一紧的鞭子感，
+   scale 忽大忽小 + perspective 透视 = 转到面前显大、转到后面显小的 3D 感 */
+/* 甩马尾：转两圈。两个变量让左右两根成"镜面"：
+     --spin   转圈总角度，左 +720 度、右 -720 度（转向相反）
+     --mirror 1 或 -1，弯曲方向也跟着反过来
+   下面每一步都写成 --spin 的百分比，这样换方向只要改变量，不用改关键帧 */
+@keyframes fx-leek-spin-k {
+  0% {
+    opacity: 0;
+    transform: perspective(320px) translate(-50%, -100%) rotate(var(--lean, 0deg))
+               rotateY(0deg) rotateX(16deg) skewX(calc(var(--mirror, 1) * -4deg)) scale(.6);
+  }
+  10% {
+    opacity: 1;
+    transform: perspective(320px) translate(-50%, -100%) rotate(var(--lean, 0deg))
+               rotateY(calc(var(--spin, 720deg) * .1)) rotateX(24deg)
+               skewX(calc(var(--mirror, 1) * -6deg)) scale(1);
+  }
+  30% {
+    transform: perspective(320px) translate(-50%, -100%) rotate(var(--lean, 0deg))
+               rotateY(calc(var(--spin, 720deg) * .3)) rotateX(28deg)
+               skewX(calc(var(--mirror, 1) * -3deg)) scale(.88);
+  }
+  50% {
+    transform: perspective(320px) translate(-50%, -100%) rotate(var(--lean, 0deg))
+               rotateY(calc(var(--spin, 720deg) * .5)) rotateX(22deg)
+               skewX(calc(var(--mirror, 1) * 5deg)) scale(1.08);
+  }
+  70% {
+    transform: perspective(320px) translate(-50%, -100%) rotate(var(--lean, 0deg))
+               rotateY(calc(var(--spin, 720deg) * .7)) rotateX(28deg)
+               skewX(calc(var(--mirror, 1) * 3deg)) scale(.88);
+  }
+  90% {
+    opacity: 1;
+    transform: perspective(320px) translate(-50%, -100%) rotate(var(--lean, 0deg))
+               rotateY(calc(var(--spin, 720deg) * .9)) rotateX(20deg)
+               skewX(calc(var(--mirror, 1) * -5deg)) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: perspective(320px) translate(-50%, -100%) rotate(var(--lean, 0deg))
+               rotateY(var(--spin, 720deg)) rotateX(16deg)
+               skewX(calc(var(--mirror, 1) * 0deg)) scale(.75);
+  }
+}
+
+/* 白色圈（私密群通用版用的） */
+.fx-ring-plain {
+  position: absolute;
+  width: 22px; height: 22px;
+  border: 3px solid rgba(255, 253, 246, .9);
+  border-radius: 50%;
+  animation: fx-ring-k .7s ease-out forwards;
+}
+
+/* 锁定圈（游戏群红色）跟闪光共用同一套扩散动画 */
+.fx-lock-ring {
+  position: absolute;
+  width: 22px; height: 22px;
+  border: 3px solid #ff4d4f;
+  border-radius: 50%;
+  animation: fx-ring-k .6s ease-out forwards;
+}
+
+.fx-flash {
+  position: absolute;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,.95), rgba(255,255,255,0) 70%);
+  animation: fx-ring-k .38s ease-out forwards;
+}
+
+@keyframes fx-ring-k {
+  0%   { opacity: .95; transform: translate(-50%, -50%) scale(.4); }
+  100% { opacity: 0;   transform: translate(-50%, -50%) scale(3.4); }
+}
+
+/* ---------- 游戏群：准心 ---------- */
+.fx-cross {
+  position: absolute;
+  width: 64px; height: 64px;
+  --fc: #22d3ee;
+  border: 2.5px solid var(--fc);
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--fc) 0 3px, transparent 3.5px);
+  box-shadow: 0 0 12px rgba(34, 211, 238, .8), inset 0 0 8px rgba(34, 211, 238, .5);
+  transform: translate(-50%, -50%) scale(2.4);
+  opacity: 0;
+  transition: opacity .18s ease, transform .18s ease;
+}
+
+/* 十字线：用两个伪元素画横竖两道 */
+.fx-cross::before,
+.fx-cross::after {
+  content: "";
+  position: absolute;
+  background: var(--fc);
+}
+
+.fx-cross::before { left: 50%; top: -13px; bottom: -13px; width: 2px; margin-left: -1px; }
+.fx-cross::after  { top: 50%; left: -13px; right: -13px; height: 2px; margin-top: -1px; }
+
+/* 锁定态：变红 + 脉冲 */
+.fx-cross-lock {
+  --fc: #ff4d4f;
+  box-shadow: 0 0 14px rgba(255, 77, 79, .9), inset 0 0 8px rgba(255, 77, 79, .5);
+  animation: fx-lock-pulse .45s ease-in-out 2;
+}
+
+@keyframes fx-lock-pulse {
+  50% { transform: translate(-50%, -50%) scale(1.06); }
+}
+
+/* 拖尾：一团模糊光斑，慢半拍追着准心跑 */
+.fx-trail {
+  position: absolute;
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(34, 211, 238, .5), transparent 70%);
+  filter: blur(3px);
+  transform: translate(-50%, -50%) scale(1.8);
+  opacity: 0;
+  transition: opacity .2s ease;
+}
+
+/* ---------- 八卦群：掉落的大西瓜 ---------- */
+.fx-fall {
+  position: absolute;
+  font-size: 46px;
+  transform: translate(-50%, -50%);
+  animation: fx-fall-k .62s cubic-bezier(.35, 0, .65, 1) forwards;
+}
+
+@keyframes fx-fall-k {
+  0%   { transform: translate(-50%, -50%) translateY(-300px) rotate(-160deg); }
+  70%  { transform: translate(-50%, -50%) translateY(0) rotate(0deg); }
+  84%  { transform: translate(-50%, -50%) translateY(-24px); }
+  94%, 100% { transform: translate(-50%, -50%) translateY(0); }
+}
+
+/* ---------- 运动群：拍地弹跳的篮球（中心入场版） ---------- */
+/* 外层推进器：管位置和入场缩放，数值跟 .fx-cross 准心完全一致
+   （基础 scale 2.4 透明 → 亮起 1.5 → 飞到位 0.85），入场节奏两群统一 */
+.fx-ball-wrap {
+  position: absolute;
+  font-size: 44px;              /* 篮球本球的大小挂在这层，内层直接继承 */
+  transform: translate(-50%, -50%) scale(2.4);
+  opacity: 0;
+  z-index: 90;
+  pointer-events: none;
+  transition: opacity .18s ease, transform .18s ease;
+}
+
+/* 内层篮球：只负责拍地弹跳（transform 动画独立一层，不跟外层入场打架） */
+.fx-basketball {
+  animation: fx-ball-bounce .45s ease-in-out 2;
+}
+
+@keyframes fx-ball-bounce {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(40px) scale(1.06, .92); }
+}
+
+/* ---------- 学习群：小红花印章 ---------- */
+/* 直接盖在头像右下角，像老师发的小红花贴纸：
+   奶白圆底 + 红边框 + 居中一朵 🌸，微微歪着头才像手盖出来的 */
+.fx-redflower {
+  position: absolute;
+  right: -7px;
+  bottom: -7px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  background: var(--paper);
+  border: 2px solid #e2554a;
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(var(--ink-rgb), .35);
+  opacity: 0;
+  z-index: 5;
+  transform: scale(2.4) rotate(24deg);          /* 落章前：高高抬起 */
+  animation: fx-flower-k .45s cubic-bezier(.2, 1.5, .4, 1) forwards;
+}
+
+/* 盖章：大→小带一点回弹压到底，再稳稳停住 */
+@keyframes fx-flower-k {
+  0%   { opacity: 0; transform: scale(2.4) rotate(24deg); }
+  60%  { opacity: 1; transform: scale(.92) rotate(-10deg); }
+  100% { opacity: 1; transform: scale(1) rotate(-10deg); }
+}
+
+/* 告别：不闪不跳，原地轻轻缩小淡掉 */
+.fx-redflower-bye {
+  animation: fx-flower-bye-k .6s ease forwards;
+}
+
+@keyframes fx-flower-bye-k {
+  to { opacity: 0; transform: scale(.8) rotate(-10deg); }
+}
+
+/* ---------- 音乐群：均衡器音柱（矮窄版，只贴着头像底边一小条） ---------- */
+.fx-eq {
+  position: absolute;
+  width: 6px; height: 20px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #a855f7, #22d3ee);
+  transform: translate(-50%, -100%);
+  transform-origin: bottom;
+  opacity: 0;
+  animation:
+    fx-eq-k .5s ease-in-out infinite alternate,
+    fx-eq-out 1.2s ease forwards;
+}
+
+@keyframes fx-eq-k {
+  from { scale: 1 0.35; }
+  to   { scale: 1 1; }
+}
+
+@keyframes fx-eq-out {
+  0%   { opacity: 0; }
+  15%  { opacity: 1; }
+  78%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ---------- 右键"谁已读"弹窗里的名单 ---------- */
+/* 每组一个小标题 + 一排名字胶囊，像贴纸一样 */
+.read-group {
+  margin-bottom: 14px;
+  text-align: left;
+}
+
+.read-group-title {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.read-group-title.is-read { color: #1a7f4b; }
+.read-group-title.is-unread { color: #c2554a; }
+
+.read-names {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.read-chip {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1.5px solid;
+}
+
+.read-chip.is-read {
+  color: #1a7f4b;
+  border-color: rgba(26, 127, 75, 0.45);
+  background: rgba(26, 127, 75, 0.08);
+}
+
+.read-chip.is-unread {
+  color: #c2554a;
+  border-color: rgba(194, 85, 74, 0.45);
+  background: rgba(194, 85, 74, 0.08);
+}
+
+/* ---------- 有些人不喜欢动画：系统开了"减弱动态效果"就全停掉 ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; }
+  .tile:nth-child(odd), .tile:nth-child(even) { transform: none; }
+}
+
+/* ============================================================
+   手机：左栏变成顶部一条，内容在下面
+   ============================================================ */
+@media (max-width: 720px) {
+  .main { flex-direction: column; }
+
+  .sidebar {
+    width: 100%;
+    flex-direction: column;
+    border-right: none;
+    border-bottom: 2.5px solid var(--ink);
+    padding: 12px;
+    gap: 10px;
+    overflow-x: auto;
+  }
+
+  /* 分区改成横向一排，可以左右滑 */
+  .side-section {
+    flex-direction: row;
+    gap: 8px;
+    overflow-x: auto;
+  }
+
+  .side-title { display: none; }   /* 小屏省掉小标题 */
+
+  .side-item {
+    padding: 8px 14px;
+    white-space: nowrap;
+    border-radius: 20px;
+    background: var(--white);
+    border: 2px solid var(--line-soft);
+  }
+
+  .side-item.active { border-color: var(--ink); }
+
+  .side-empty { display: none; }
+
+  .side-bottom {
+    margin-top: 0;
+    flex-direction: row;
+    padding-top: 8px;
+  }
+
+  .side-row { flex: 1; }
+
+  .content { min-height: 0; }
+
+  .hall { padding: 20px 16px; }
+
+  .tile {
+    min-height: 150px;
+    padding: 14px 130px 14px 16px;
+  }
+
+  .tile-art { right: 8px; }
+}
+
+/* ============================================================
+   夜间模式（body 上挂一个 night 类就整体切换）
+   道理：上面所有颜色都是从 :root 的变量"领"的，
+   这里只要换一套变量值，全站颜色一起翻过来，一行行改是不可能的
+   ============================================================ */
+body.night {
+  --ink-rgb: 236, 231, 218;      /* "墨水"换成米白色：描边、文字、硬阴影全变浅 */
+  /* --ink 必须在这里重新声明！
+     CSS 变量套变量时，里层的值是在"声明处"（:root，也就是 html 上）算好再传下来的，
+     只改 --ink-rgb 的话 --ink 还是白天的深墨黑，字会变成深字压深底看不清。
+     在 body.night 里重写一遍，它就当场用夜间的 --ink-rgb 重新算 */
+  --ink: rgb(var(--ink-rgb));
+  --page: #14131a;               /* 深夜底色 */
+  --paper: #22212c;              /* 卡纸换成深灰蓝 */
+  --paper-2: #1a1922;            /* 左栏、输入栏更深一档 */
+  --paper-3: #2e2d3a;            /* 邀请链接底 */
+  --paper-hi: #45402a;           /* 便签黄的"深夜版"：暗黄 */
+  --white: #2c2b38;              /* 输入框、气泡的"白"变成抬高的深灰 */
+  --line-soft: #3a3848;          /* 浅描边换成暗描边 */
+  --muted: #a49eb5;              /* 次要文字提亮 */
+  --faint: #6f6a80;              /* 更淡的文字 */
+  --text-2: #c6c0d4;             /* 群名文字提亮 */
+  --grid-dot: rgba(255, 255, 255, 0.05);   /* 网格点几乎看不见 */
+  --scroll: #45425a;             /* 滚动条 */
+  /* 荧光笔划重点：夜里改成半透明黄，浅色文字压在上面才看得清 */
+  --hl: linear-gradient(transparent 58%, rgba(255, 210, 63, 0.28) 58%);
+
+  /* 背景的两团暖光换成暗夜里的紫/蓝光，氛围对上 */
+  background-image:
+    radial-gradient(var(--grid-dot) 1.1px, transparent 1.2px),
+    radial-gradient(700px 500px at 10% 0%, rgba(126, 100, 255, 0.10), transparent 60%),
+    radial-gradient(700px 500px at 95% 100%, rgba(64, 170, 255, 0.07), transparent 60%);
+}
+
+/* 便签黄按钮/选中项：黄底上必须用回深色字，不然浅字压黄底看不清 */
+body.night .btn,
+body.night .side-item.active,
+body.night .invite-btn,
+body.night .dismiss-btn,
+body.night .leave-btn {
+  color: #2a251e;
+}
+
+/* 我发的气泡：绿豆沙色在夜里换成深绿，配浅色字 */
+body.night .msg-row.mine .bubble {
+  background: #3f7d2c;
+}
+
+/* 大厅的六张主题卡：白天是马卡龙色，夜里换成同色系的深色版 */
+body.night .tile-game   { background: #26314d; }
+body.night .tile-acg    { background: #472039; }
+body.night .tile-gossip { background: #4a2a1a; }
+body.night .tile-sport  { background: #1d3a24; }
+body.night .tile-study  { background: #1b3a31; }
+body.night .tile-music  { background: #2c2450; }
+
+/* 夜里把几个偏暗的彩色文字提亮一档，不然深底上发闷 */
+body.night .error-text,
+body.night .menu-item.is-danger { color: #ff8a7a; }
+body.night .typing-text,
+body.night .switch-line { color: #7aa5ff; }
+body.night .copy-tip { color: #4fd39a; }
+body.night .read-group-title.is-read,
+body.night .read-chip.is-read { color: #5fd39a; }
+body.night .read-group-title.is-unread,
+body.night .read-chip.is-unread { color: #ff8a7a; }
+
+/* ---------- 主题切换按钮 ---------- */
+/* 登录后：住在左上角"我"那张卡里，跟 🔔 铃铛并排，显眼但不占地方 */
+.theme-toggle {
+  font-size: 17px;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.theme-toggle:hover { transform: scale(1.2) rotate(12deg); }
+
+/* 登录页：左上角那张卡是隐藏的，所以在右上角浮一颗圆按钮 */
+.theme-float {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 19px;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  box-shadow: 3px 3px 0 rgba(var(--ink-rgb), 0.9);
+  cursor: pointer;
+  z-index: 90;
+  transition: transform 0.15s;
+}
+
+.theme-float:hover { transform: translateY(-2px); }
+.theme-float:active { transform: translateY(1px); }
