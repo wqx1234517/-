@@ -13,7 +13,6 @@ const HALL_STYLE = {
 };
 
 createApp({
-  // data 里放的是"页面上会变的东西"，改了它们页面就会自动刷新
   data() {
     return {
       // ---------- 账号 ----------
@@ -87,9 +86,7 @@ createApp({
     },
   },
 
-  // mounted 是页面刚打开时自动执行一次的地方
   mounted() {
-    // localStorage 是浏览器自带的小记事本，关掉页面也还在
     this.token = localStorage.getItem("chat_token") || "";
     this.myName = localStorage.getItem("chat_name") || "";
     this.myAvatar = localStorage.getItem("chat_avatar") || "🐱";
@@ -868,16 +865,9 @@ createApp({
       }, 620);
     },
 
-    // 二次元群：两根大葱当"双马尾"扎在头像两侧，像甩头发一样转圈
-    // 几何关系：葱根（底部）钉死不动 = 圆锥的顶点；
-    //          葱身往外倾斜 = 圆锥的母线；
-    //          再绕竖直轴转 = 葱尖画圆，葱身扫出一个圆锥面
+    // 二次元群：两根葱当双马尾，葱根（圆锥顶点）不动、葱身绕竖直轴转圈扫出圆锥面。
+    // 左右两根靠 --lean / --spin / --mirror 三个变量做镜面对称
     fxAcg(layer, rect, cx, cy) {
-      // 两根葱一左一右，动作完全镜面对称（像照镜子）：
-      //   --lean   往两边撇的角度，一正一负
-      //   --spin   转圈的角度，一根 +720 一根 -720（转向相反）
-      //   --mirror 弯曲方向，也跟着反过来
-      // 同时开转，不再错开时间
       [-1, 1].forEach((side) => {
         const leek = this.fxAdd(layer, "fx-leek", "",
           { left: (side * 15) + "px", top: "-14px" }, 2000);
@@ -888,26 +878,21 @@ createApp({
       // 画面上就这两根荧光棒，别的什么都不加
     },
 
-    // 运动群：篮球从画面中心出现展开（跟游戏群准心同一套入场），
-    // 弹着飞到头像上砸一下，再旋转着弹走
+    // 运动群：篮球从画面中心出现展开（跟游戏群准心同一套入场），弹着飞到头像上再旋转弹走
     fxSport(layer, rect, cx, cy) {
-      // 跟游戏群准心一样：起点写成相对头像的偏移，第一眼仍是从画面正中出来的
       const offX = window.innerWidth / 2 - cx;
       const offY = window.innerHeight / 2 - cy;
 
-      // 外层"推进器"：只管位置和大小——入场展开、飞向头像、飞离，全是它
+      // 两层：外层管位置和缩放，内层管弹跳。
+      // 两者都是 transform，拆开才不会互相覆盖
       const wrap = this.fxAdd(layer, "fx-ball-wrap", "",
         { left: offX + "px", top: offY + "px" }, 1900);
 
-      // 内层篮球本球：只管拍地弹跳。
-      // 弹跳是 transform 动画，外层的平移缩放也是 transform，
-      // 分成两层各管各的，不然两套 transform 互相覆盖
       const ball = document.createElement("div");
       ball.className = "fx-basketball";
       ball.textContent = "🏀";
       wrap.appendChild(ball);
 
-      // 第一拍：从画面中心亮出来（时机和幅度跟游戏群准心完全一致）
       requestAnimationFrame(() => {
         wrap.style.opacity = "1";
         wrap.style.transform = "translate(-50%,-50%) scale(1.5)";
@@ -934,15 +919,12 @@ createApp({
       }, 950);
     },
 
-    // 学习群：给头像盖一朵小红花印章（像老师发的红花贴纸）
+    // 学习群：给头像盖一朵小红花印章
     fxStudy(layer, rect, cx, cy, avEl) {
-      // 找不到头像（他还没说过话）就没地方盖章，直接不演了，
-      // 反正外面还有字幕和抖动兜底
-      if (!avEl) return;
+      if (!avEl) return;   // 他还没说过话，没有头像可盖
 
-      // 印章不画在特效层，直接"盖"进头像元素里：
-      // 这样滚动消息列表时小红花跟着头像走，不会飘在半空
-      avEl.style.position = "relative";   // 印章要用绝对定位钉在头像角上，先给头像当锚点
+      // 印章直接盖进头像元素里（不画在特效层），滚动时才会跟着头像走
+      avEl.style.position = "relative";
       const old = avEl.querySelector(".fx-redflower");
       if (old) old.remove();              // 连着拍两下：换新花，不叠两层
 
@@ -959,9 +941,8 @@ createApp({
       setTimeout(() => flower.remove(), 4400);
     },
 
-    // 音乐群：音符往上飘 + 均衡器音柱（紧凑版：范围小、个子小，不抢戏）
+    // 音乐群：音符往上飘 + 均衡器音柱（刻意做小，不抢戏）
     fxMusic(layer, rect, cx, cy) {
-      // 音符：3 个、18px、聚在头像正上方一小片，飘得也不高
       ["🎵", "♪", "♫"].forEach((p, i) => {
         const bit = this.fxAdd(layer, "fx-float", p,
           { left: ((i - 1) * 14) + "px", top: "-6px" }, 1200);

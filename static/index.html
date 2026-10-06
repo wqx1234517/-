@@ -2,16 +2,14 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
-  <!-- 这行让手机上按屏幕真实宽度显示，不会被缩放成"缩小版电脑网页" -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>轻量聊天室</title>
-  <!-- 文件名后面加 ?v=20 是"版本号"：改了代码就把数字加一，
-       浏览器会当成新文件重新下载，手机上不用辛苦清缓存也会更新 -->
+  <!-- 文件名后的 ?v=数字 是版本号：改了前端代码就把数字加一，
+       浏览器会当新文件下载，手机不用清缓存也能更新 -->
   <link rel="stylesheet" href="/style.css?v=41">
 </head>
 <body>
 
-<!-- v-if / v-for / @click 这些都是 Vue 的写法，具体含义看 app.js 里的注释 -->
 <div id="app">
 
   <!-- ============ 没登录：登录 / 注册（占满整屏） ============ -->
@@ -116,7 +114,7 @@
         <p class="hall-sub">挑一个感兴趣的群，点进去先看再决定加不加入</p>
 
         <div class="tiles">
-          <!-- 每个格子风格都不一样，对应群名的主题（配色和装饰在 style.css 里） -->
+          <!-- 每个格子风格不同，对应群名的主题（配色和装饰在 style.css 里） -->
           <div v-for="g in hallRooms" :key="g.id"
                class="tile" :class="'tile-' + tileStyle(g.name)"
                @click="openRoom(g)">
@@ -280,8 +278,7 @@
   <div ref="fxLayer" class="fx-layer" aria-hidden="true"></div>
 </div>
 
-<!-- Vue 3 已下载到本项目里（static/vue.global.prod.js），直接从本机加载。
-     不再依赖网上 CDN：断网、网络差、CDN 被墙都不影响，手机和电脑都稳 -->
+<!-- Vue 3 下载到了项目里本地加载，不走 CDN：断网也能跑 -->
 <script src="/vue.global.prod.js"></script>
 <script src="/app.js?v=43"></script>
 </body>
