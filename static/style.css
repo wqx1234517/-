@@ -832,6 +832,20 @@ body {
 
 .header-name { font-size: 16px; font-weight: 700; letter-spacing: 0.4px; }
 
+/* 群名后面挂的"多少人加入了这个群"，做成一枚小贴纸，不抢标题的戏 */
+.member-count {
+  display: inline-block;
+  margin-left: 7px;
+  padding: 1px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--paper-2);
+  border: 1.5px solid var(--line-soft);
+  border-radius: 999px;
+  vertical-align: middle;
+}
+
 .header-state {
   font-size: 12px;
   color: var(--muted);

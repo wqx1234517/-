@@ -223,6 +223,7 @@ def _one_room(sql, args):
         "invite_code": row[3] or "",
         "created_by": row[4] or "",
         "is_public": row[5] or 0,
+        "member_count": count_members(row[0]),
     }
 
 
@@ -253,6 +254,7 @@ def list_public_rooms():
             "created_by": r[4] or "",
             "is_public": 1,
             "unread": 0,
+            "member_count": count_members(r[0]),
         })
 
     # 按 PUBLIC_GROUPS 的顺序排，而不是数据库 id，页面格子顺序才固定
@@ -295,6 +297,18 @@ def get_member_names(room_id):
     return [r[0] for r in rows]
 
 
+def count_members(room_id):
+    # 这个群一共多少真人加入过（不是在线人数）。
+    # 排除"系统"：公开大厅那六个群的创建者是它，也被登记成了成员，但不算真人
+    conn = get_conn()
+    row = conn.execute(
+        "SELECT COUNT(*) FROM room_members WHERE room_id = ? AND username <> ?",
+        (room_id, "系统"),
+    ).fetchone()
+    conn.close()
+    return row[0] if row else 0
+
+
 def is_member(username, room_id):
     conn = get_conn()
     row = conn.execute(
@@ -313,7 +327,8 @@ def list_rooms_of(username):
         "  (SELECT COUNT(*) FROM messages m "
         "   WHERE m.room_id = r.id "
         "     AND m.id > IFNULL(rm.last_read_id, 0) "
-        "     AND m.sender_name <> ?) "
+        "     AND m.sender_name <> ?), "
+        "  (SELECT COUNT(*) FROM room_members rm2 WHERE rm2.room_id = r.id AND rm2.username <> '系统') "
         "FROM rooms r JOIN room_members rm ON r.id = rm.room_id "
         "WHERE rm.username = ? ORDER BY r.id",
         (username, username),
@@ -328,6 +343,7 @@ def list_rooms_of(username):
         "created_by": r[4] or "",
         "unread": r[5] or 0,
         "is_public": 0,
+        "member_count": r[6] or 0,
     } for r in rows]
 
 
@@ -347,6 +363,7 @@ def get_room_by_code(code):
         "created_at": row[2],
         "invite_code": row[3] or "",
         "created_by": row[4] or "",
+        "member_count": count_members(row[0]),
     }
 
 
@@ -378,6 +395,7 @@ def create_room(name, creator="", is_public=0):
         "invite_code": code,
         "created_by": creator,
         "is_public": is_public,
+        "member_count": 1 if creator else 0,   # 刚建的群，建的人自己是第一个成员
     }
 
 

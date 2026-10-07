@@ -6,7 +6,7 @@
   <title>轻量聊天室</title>
   <!-- 文件名后的 ?v=数字 是版本号：改了前端代码就把数字加一，
        浏览器会当新文件下载，手机不用清缓存也能更新 -->
-  <link rel="stylesheet" href="/style.css?v=41">
+  <link rel="stylesheet" href="/style.css?v=44">
 </head>
 <body>
 
@@ -135,7 +135,11 @@
 
         <div class="chat-header">
           <div class="chat-title">
-            <div class="header-name">{{ currentRoom.name }}</div>
+            <div class="header-name">
+              {{ currentRoom.name }}
+              <!-- 这个群一共多少人加入了（跟下面的"在线人数"不是一回事） -->
+              <span v-if="currentRoom.member_count" class="member-count">👥 {{ currentRoom.member_count }} 人</span>
+            </div>
             <div class="header-state">
               <span class="dot" :class="connected ? 'on' : 'off'"></span>
               {{ connected ? onlineCount + ' 人在房间里' : '连接中...' }}
@@ -280,6 +284,6 @@
 
 <!-- Vue 3 下载到了项目里本地加载，不走 CDN：断网也能跑 -->
 <script src="/vue.global.prod.js"></script>
-<script src="/app.js?v=43"></script>
+<script src="/app.js?v=44"></script>
 </body>
 </html>
