@@ -309,6 +309,20 @@ def count_members(room_id):
     return row[0] if row else 0
 
 
+def get_members(room_id):
+    # 这个群的成员名单（昵称 + 头像），按加入顺序排。
+    # 排除"系统"：那是公开群的名义创建者，不是真人，不该出现在群友名单里
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT rm.username, IFNULL(u.avatar, '') FROM room_members rm "
+        "LEFT JOIN users u ON u.username = rm.username "
+        "WHERE rm.room_id = ? AND rm.username <> ? ORDER BY rm.id",
+        (room_id, "系统"),
+    ).fetchall()
+    conn.close()
+    return [{"username": r[0], "avatar": r[1]} for r in rows]
+
+
 def is_member(username, room_id):
     conn = get_conn()
     row = conn.execute(

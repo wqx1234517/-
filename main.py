@@ -108,6 +108,19 @@ def join_room(info: JoinInfo, token: str = ""):
     return room
 
 
+@app.get("/api/rooms/{room_id}/members")
+def room_members_api(room_id: int, token: str = ""):
+    username = user_of(token)
+    if username is None:
+        raise HTTPException(status_code=401, detail="请先登录")
+
+    # 跟看消息同一个门槛：成员能看，公开群不是成员也能看
+    if not db_helper.can_read(room_id, username):
+        raise HTTPException(status_code=403, detail="你还不是这个房间的成员，先加入吧")
+
+    return db_helper.get_members(room_id)
+
+
 @app.get("/api/rooms/{room_id}/messages")
 def get_room_messages(room_id: int, token: str = ""):
     username = user_of(token)

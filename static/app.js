@@ -38,6 +38,8 @@ createApp({
       inputText: "",     // 输入框里的内容
       showInvite: false, // 是否弹出邀请面板
       copyTip: "",       // 点复制之后显示的那句提示
+      memberPanel: null, // 点"👥 N 人"弹出的群友名单：{ x, y } 是弹出位置，null=不显示
+      memberList: [],    // 群友名单：[{ username, avatar }]
       readPanel: null,   // "谁已读"弹窗的内容，null=不显示。
                          // 长这样：{ read: ["张三"], unread: ["李四"] }
       msgMenu: null,     // 右键消息的小菜单：{ x, y, m }，x/y 是弹出位置，m 是那条消息。null=不显示
@@ -615,6 +617,32 @@ createApp({
       // 引用的内容太长的话截断，输入框上那行小字放不下
       const text = m.content.length > 30 ? m.content.slice(0, 30) + "…" : m.content;
       this.quote = { id: m.id, name: m.sender_name, content: text };
+    },
+
+    // 点群名旁边的"👥 N 人"：把这个群的成员名单弹出来
+    async openMembers(event) {
+      // 位置跟右键菜单一个处理方式：鼠标太靠边时往回缩，别把菜单顶出屏幕外
+      this.memberPanel = {
+        x: Math.min(event.clientX, window.innerWidth - 200),
+        y: Math.min(event.clientY, window.innerHeight - 260),
+      };
+
+      const res = await fetch(this.api("/api/rooms/" + this.currentRoom.id + "/members"));
+      if (res.status === 401) {
+        this.onTokenDead();
+        return;
+      }
+      if (!res.ok) {
+        this.showToast("看不了这个群的成员");
+        this.closeMembers();
+        return;
+      }
+      this.memberList = await res.json();
+    },
+
+    closeMembers() {
+      this.memberPanel = null;
+      this.memberList = [];
     },
 
     // 屏幕下方飘一条小提示，1.6 秒后自己消失
