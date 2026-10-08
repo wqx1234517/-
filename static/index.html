@@ -6,7 +6,7 @@
   <title>轻量聊天室</title>
   <!-- 文件名后的 ?v=数字 是版本号：改了前端代码就把数字加一，
        浏览器会当新文件下载，手机不用清缓存也能更新 -->
-  <link rel="stylesheet" href="/style.css?v=48">
+  <link rel="stylesheet" href="/style.css?v=49">
 </head>
 <body>
 
@@ -307,19 +307,6 @@
     <div class="intro-bg"></div>
     <div class="intro-vignette"></div>
 
-    <!-- HUD：屏幕上那几行小字。它是平的，不跟着 3D 平面转 -->
-    <div class="intro-hud">
-      <div class="hud-tl">◇ LAYOUT WORKBENCH</div>
-      <div class="hud-tr">{{ night ? 'NIGHT' : 'DAY' }} · v1.0</div>
-      <div class="hud-lines">
-        <div class="hud-line l1">› Lay down your pieces</div>
-        <div class="hud-line l2">› And let's begin</div>
-        <div class="hud-line l3">› 正在装配「公开大厅」 {{ introStep }}/{{ introTotal }}</div>
-      </div>
-      <div class="hud-skip">点击任意位置跳过</div>
-      <div class="hud-bar"><i></i></div>
-    </div>
-
     <!-- 3D 舞台：里面的东西全都在同一个"斜着摊开的桌面"上 -->
     <div class="intro-stage">
       <div class="iso" :style="isoStyle">
@@ -341,8 +328,10 @@
           <i class="pc-line w1"></i><i class="pc-line w2"></i>
         </div>
 
-        <!-- 大厅里那几张贴纸卡片，一张一张飞进来 -->
-        <div v-for="(t, i) in introBox.tiles" :key="'pc' + i" class="pc pc-tile"
+        <!-- 大厅里那几张贴纸卡片，一张一张飞进来。
+             每张的颜色跟着它对应的真卡片走（pc-t-game / pc-t-acg ...） -->
+        <div v-for="(t, i) in introBox.tiles" :key="'pc' + i"
+             class="pc pc-tile" :class="'pc-t-' + (t.kind || 'plain')"
              :style="pcStyle(t)">
           <span class="pc-tag">{{ t.label }}</span>
           <i class="pc-art"></i>
@@ -363,6 +352,21 @@
       </div>
     </div>
 
+    <!-- HUD：屏幕上那几行小字。它是平的，不跟着 3D 平面转。
+         放在舞台后面（DOM 顺序靠后 = 盖在上面），
+         因为镜头拉平后部件会变成不透明的纸片，压住这几行字就看不清了 -->
+    <div class="intro-hud">
+      <div class="hud-tl">◇ LAYOUT WORKBENCH</div>
+      <div class="hud-tr">{{ night ? 'NIGHT' : 'DAY' }} · v1.0</div>
+      <div class="hud-lines">
+        <div class="hud-line l1">› Lay down your pieces</div>
+        <div class="hud-line l2">› And let's begin</div>
+        <div class="hud-line l3">› 正在装配「公开大厅」 {{ introStep }}/{{ introTotal }}</div>
+      </div>
+      <div class="hud-skip">点击任意位置跳过</div>
+      <div class="hud-bar"><i></i></div>
+    </div>
+
     <!-- 最后那一下暖白闪光：像"啪"地把灯打开 -->
     <div class="intro-flash"></div>
   </div>
@@ -376,6 +380,6 @@
 
 <!-- Vue 3 下载到了项目里本地加载，不走 CDN：断网也能跑 -->
 <script src="/vue.global.prod.js"></script>
-<script src="/app.js?v=48"></script>
+<script src="/app.js?v=49"></script>
 </body>
 </html>

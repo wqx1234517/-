@@ -760,8 +760,29 @@ body {
   50% { transform: rotate(44deg); }
 }
 
-/* --- 音乐群：一支复古麦克风在唱歌，旁边飘音符和三道声波 --- */
+/* --- 音乐群：一台黑胶唱机，唱片躺在底座上不停转，唱臂搭在唱片上 --- */
 .tile-music { background: #ece4ff; }
+
+/* 唱机底座：一块木头色的方板，右下角一个旋钮
+   它是「卡片」的伪元素，所以只能用 right + top:50% 去跟右边那块插画区对齐 */
+.tile-music::after {
+  content: "";
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-25px);
+  width: 108px; height: 66px;
+  border-radius: 14px;
+  border: 2.5px solid var(--ink);
+  box-shadow: 3px 3px 0 rgba(var(--ink-rgb), 0.9);
+  background:
+    radial-gradient(circle, #f6c453 0 5px, var(--ink) 5px 7px, transparent 7px) no-repeat 90px 46px / 14px 14px,
+    linear-gradient(160deg, #f0d9b5, #d9a066);
+  z-index: 0;   /* 底座垫在最下面，唱片和唱臂压在它上面 */
+}
+
+/* 插画整体抬到底座上面，不然唱片会被底座盖住 */
+.tile-music .tile-art { z-index: 1; }
 
 /* 一个跳动的音符 */
 .tile-music::before {
@@ -779,56 +800,37 @@ body {
   50% { transform: translateY(-7px) rotate(8deg); opacity: 1; }
 }
 
-/* 话筒头：金属网罩是横竖两层细线交叉出来的网格，轻轻上下浮动像有人在唱 */
+/* 唱片：一圈圈纹路 + 黄色中心标，躺在底座上不停旋转 */
 .tile-music .tile-art::before {
   content: "";
   position: absolute;
-  left: 40px; top: 6px;
-  width: 40px; height: 48px;
+  left: 16px; top: 34px;
+  width: 52px; height: 52px;
+  border-radius: 50%;
   border: 2.5px solid var(--ink);
-  border-radius: 20px 20px 14px 14px;
   box-shadow: 3px 3px 0 rgba(var(--ink-rgb), 0.9);
   background:
-    repeating-linear-gradient(90deg, rgba(var(--ink-rgb), 0.42) 0 1.5px, transparent 1.5px 7px),
-    repeating-linear-gradient(0deg, rgba(var(--ink-rgb), 0.42) 0 1.5px, transparent 1.5px 7px),
-    linear-gradient(160deg, #f4f6fa, #b9c2d4);
-  animation: mic-float 1.6s ease-in-out infinite;
+    radial-gradient(circle, #ffd23f 0 9px, var(--ink) 9px 11px, transparent 11px),
+    repeating-radial-gradient(circle, #33302a 0 2px, #4a463e 2px 5px);
+  animation: spin 3.2s linear infinite;
 }
 
-@keyframes mic-float {
-  0%, 100% { transform: translateY(0) rotate(-3deg); }
-  50% { transform: translateY(-5px) rotate(3deg); }
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
-/* 话筒下面的支架：顶部一个圆接头 + 一根竖杆 + 一块底盘 */
+/* 唱臂：右上角一个红色支点，一根斜杆的杆头正好搭在唱片上
+   （rotate 正角度是顺时针，向下的杆顺时针转 60 度就指向左下，也就是唱片那边） */
 .tile-music .tile-art::after {
   content: "";
   position: absolute;
-  left: 42px; top: 52px;
-  width: 40px; height: 46px;
+  right: 8px; top: 32px;
+  width: 14px; height: 56px;
   background:
-    radial-gradient(circle, var(--ink) 0 5px, transparent 5px) no-repeat 15px 0 / 10px 10px,
-    linear-gradient(var(--ink), var(--ink)) no-repeat 18px 5px / 4px 35px,
-    linear-gradient(var(--ink), var(--ink)) no-repeat 4px 38px / 32px 4px;
-}
-
-/* 右边三道声波：跟篮球的弧一个招数，圆心放在盒子外面，只露出弯的那一段
-   三条弧共用一个圆心、半径一圈比一圈大，才会像声音一圈圈往外扩散 */
-.tile-music::after {
-  content: "";
-  position: absolute;
-  right: 10px; top: 34px;
-  width: 26px; height: 52px;
-  background:
-    radial-gradient(circle 34px at -8px 26px, transparent 0 31.5px, var(--ink) 31.5px 34px, transparent 34px),
-    radial-gradient(circle 26px at -8px 26px, transparent 0 23.5px, var(--ink) 23.5px 26px, transparent 26px),
-    radial-gradient(circle 18px at -8px 26px, transparent 0 15.5px, var(--ink) 15.5px 18px, transparent 18px);
-  animation: wave-pulse 1.4s ease-in-out infinite;
-}
-
-@keyframes wave-pulse {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 0.85; }
+    radial-gradient(circle, #ff5c38 0 5px, var(--ink) 5px 7px, transparent 7px) no-repeat center 0 / 14px 14px,
+    linear-gradient(var(--ink), var(--ink)) no-repeat center 10px / 3px 44px;
+  transform: rotate(60deg);
+  transform-origin: top center;
 }
 
 /* 兜底风格（以后加了新群没配样式就用它） */
@@ -1324,28 +1326,40 @@ body {
       以后想加一个部件，只要在标签上多写一行 style，不用再抄一段动画。
    ============================================================ */
 
+/* 幕布：底色直接用主题的"奶油纸"，跟聊天室是同一套颜色。
+   装饰色也是从聊天室自己的色盘里挑的（那六张卡片用的粉/蓝/绿/紫），
+   所以一眼看上去就是"同一个东西的拆解图"，不是另一个 APP。
+   白天是米白纸，夜间模式自动跟着变深，不用为动画单独写一套 */
 .intro {
   position: fixed;
   inset: 0;
   z-index: 200;
   overflow: hidden;
   cursor: pointer;              /* 点哪儿都能跳过，所以整块都做成"能点"的 */
-  background: #07080c;
-  --iso-line: 198, 222, 255;    /* 线框的冷白（三原色数字，方便拼各种透明度） */
-  --iso-hot: 255, 232, 150;     /* 高亮的暖黄，跟白天的"荧光笔黄"是一条血脉 */
+  background-color: var(--page);
+  background-image:
+    radial-gradient(var(--grid-dot) 1.1px, transparent 1.2px),
+    radial-gradient(520px 420px at 4% -6%, rgba(255, 210, 63, 0.22), transparent 62%),
+    radial-gradient(560px 460px at 100% 2%, rgba(255, 199, 220, 0.24), transparent 64%),
+    radial-gradient(620px 500px at 0% 100%, rgba(170, 214, 255, 0.22), transparent 64%),
+    radial-gradient(620px 520px at 100% 98%, rgba(196, 234, 208, 0.24), transparent 64%),
+    radial-gradient(760px 600px at 50% 46%, rgba(255, 255, 255, 0.30), transparent 72%);
+  background-size: 22px 22px, auto, auto, auto, auto, auto;
+  /* 线框颜色 = 主题的"墨色"：白天是深墨、夜里是米白，自动跟着换 */
+  --iso-line: var(--ink-rgb);
+  --iso-hot: 255, 210, 63;      /* 强调色固定用荧光笔黄，跟界面上那支笔是同一支 */
   -webkit-user-select: none;
   user-select: none;
 }
 
-/* 斜着铺开的网格"地板"：比纯色背景多一点纵深，但别抢戏 */
+/* 斜着铺开的网格"地板"：像垫在下面的一张贴格纸，给画面一点纵深 */
 .intro-bg {
   position: absolute;
   inset: -20%;
   background-image:
-    radial-gradient(120% 80% at 50% 42%, rgba(96, 138, 210, 0.20), transparent 62%),
-    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-  background-size: auto, 48px 48px, 48px 48px;
+    linear-gradient(rgba(var(--iso-line), 0.075) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(var(--iso-line), 0.075) 1px, transparent 1px);
+  background-size: 46px 46px, 46px 46px;
   transform: perspective(700px) rotateX(26deg);
   animation: intro-bg-in 0.55s ease both;
 }
@@ -1355,28 +1369,29 @@ body {
   to   { opacity: 1; }
 }
 
-/* 四角压暗，视线自然收到中间那块 */
+/* 四角轻轻压一点，视线自然收到中间。
+   这里不能用"墨色"（夜里墨色是浅的，四角反而会变亮），改用一点透明暖褐 */
 .intro-vignette {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(130% 100% at 50% 50%, transparent 45%, rgba(0, 0, 0, 0.72) 100%);
+  background: radial-gradient(135% 105% at 50% 46%, transparent 50%, rgba(58, 48, 32, 0.13) 100%);
 }
 
-/* 暖白闪光：只在最后一瞬间闪一下，像"啪"地把灯打开 */
+/* 白场闪光：最后一瞬间像"把纸翻到亮处"那样闪一下 */
 .intro-flash {
   position: absolute;
   inset: 0;
   pointer-events: none;
   opacity: 0;
-  background: radial-gradient(58% 46% at 50% 50%, #fff6e0, rgba(255, 240, 205, 0) 72%);
+  background: radial-gradient(62% 50% at 50% 50%, rgba(255, 255, 255, 0.95), rgba(255, 253, 246, 0) 72%);
 }
 
 .intro.is-out .intro-flash { animation: intro-flash 0.46s ease both; }
 
 @keyframes intro-flash {
   0%   { opacity: 0; }
-  30%  { opacity: 0.5; }
+  30%  { opacity: 0.42; }
   100% { opacity: 0; }
 }
 
@@ -1386,7 +1401,7 @@ body {
   inset: 0;
   pointer-events: none;
   font-family: ui-monospace, "Cascadia Mono", Consolas, "Courier New", monospace;
-  color: #d5dfee;
+  color: rgba(var(--iso-line), 0.78);
 }
 
 .hud-tl, .hud-tr {
@@ -1399,18 +1414,20 @@ body {
 }
 
 .hud-tl { left: 26px; animation-delay: 0.15s; }
-.hud-tr { right: 26px; color: #8a97ad; animation-delay: 0.28s; }
+.hud-tr { right: 26px; color: rgba(var(--iso-line), 0.42); animation-delay: 0.28s; }
 
 @keyframes hud-in {
   from { opacity: 0; transform: translateY(-6px); }
   to   { opacity: 1; transform: none; }
 }
 
-/* 左上那几行字：跟参考图一样，一句一句往外冒 */
+/* 左上那几行字：跟参考图一样，一句一句往外冒。
+   起始位置特意放在 92px——镜头拉平后这里正好是左栏那张白纸，
+   深色字落在白纸上最清楚；同时避开了部件角上那排小标签 */
 .hud-lines {
   position: absolute;
   left: 26px;
-  top: 62px;
+  top: 92px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1425,8 +1442,16 @@ body {
 }
 
 .hud-line.l1 { animation-delay: 0.5s; }
-.hud-line.l2 { animation-delay: 1.35s; color: rgba(var(--iso-hot), 0.92); }
-.hud-line.l3 { animation-delay: 1.7s; font-size: 11.5px; color: #8a97ad; }
+/* 第二行给一道荧光笔黄：跟大厅标题、菜单选中项是同一种"划重点"。
+   黄底上必须用墨色字，不然米白笔画压在黄上根本看不清 */
+.hud-line.l2 {
+  animation-delay: 1.35s;
+  align-self: flex-start;      /* 在竖排的容器里只包住文字，别拉满整行 */
+  padding: 0 5px;
+  color: var(--ink);
+  background-image: var(--hl);
+}
+.hud-line.l3 { animation-delay: 1.7s; font-size: 11.5px; color: rgba(var(--iso-line), 0.42); }
 
 @keyframes hud-line-in {
   from { opacity: 0; transform: translateX(-10px); }
@@ -1438,7 +1463,7 @@ body {
   left: 26px;
   bottom: 22px;
   font-size: 11.5px;
-  color: #6f7b90;
+  color: rgba(var(--iso-line), 0.40);
   letter-spacing: 1px;
   animation: hud-in 0.5s ease 2.4s both;
 }
@@ -1449,16 +1474,15 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  height: 2px;
-  background: rgba(255, 255, 255, 0.07);
+  height: 3px;
+  background: rgba(var(--iso-line), 0.10);
 }
 
 .hud-bar i {
   display: block;
   height: 100%;
   width: 0;
-  background: linear-gradient(90deg, #7fb1ff, #ffe896);
-  box-shadow: 0 0 14px rgba(255, 232, 150, 0.75);
+  background: linear-gradient(90deg, #ffd23f, #f0a800);
   animation: hud-fill 3.56s linear both;
 }
 
@@ -1497,12 +1521,14 @@ body {
 .intro.is-out { opacity: 0; transition: opacity 0.44s ease; }
 
 /* ---------- 线框部件（pc = piece） ---------- */
+/* 米白纸底上的部件，观感是"白纸剪出来的零件摆在浅灰桌面上"：
+   描边用墨色（白天深、夜里浅，自动翻），填充用白纸色 */
 .pc {
   position: absolute;
-  border: 1.5px solid rgba(var(--iso-line), 0.55);
+  border: 2px solid rgba(var(--iso-line), 0.82);
   border-radius: 12px;
-  background: rgba(150, 190, 255, 0.05);
-  box-shadow: inset 0 0 44px rgba(120, 170, 255, 0.10);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 3px 3px 0 rgba(var(--iso-line), 0.78);
   opacity: 0;
   animation: pc-in 0.72s cubic-bezier(0.18, 0.92, 0.22, 1.04) var(--d, 0ms) both;
 }
@@ -1520,31 +1546,33 @@ body {
   }
 }
 
-/* 落位那一下的白闪：证明"卡进去了" */
+/* 落位那一下：像用荧光笔在零件上点了一下 */
 .pc::before {
   content: "";
   position: absolute;
   inset: -2px;
   border-radius: inherit;
-  border: 1.5px solid rgba(var(--iso-hot), 0.9);
+  border: 2px solid rgba(var(--iso-hot), 0.95);
+  background: rgba(var(--iso-hot), 0.18);
   opacity: 0;
   animation: pc-hit 0.42s ease var(--hit, 600ms) both;
 }
 
 @keyframes pc-hit {
   0%   { opacity: 0; }
-  35%  { opacity: 0.95; }
+  35%  { opacity: 0.9; }
   100% { opacity: 0; }
 }
 
-/* 扫过一道光：镜头拉平时从每件左边扫到右边，像"实物正在显影" */
+/* 扫过一道光：镜头拉平时从每件左边扫到右边，像"实物正在显影"。
+   米白底上用白色是看不见的，所以这道光是荧光笔黄 */
 .pc::after {
   content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit;
   opacity: 0;
-  background: linear-gradient(100deg, rgba(255,255,255,0) 20%, rgba(255,255,255,0.6) 50%, rgba(255,255,255,0) 80%);
+  background: linear-gradient(100deg, rgba(255,210,63,0) 20%, rgba(255,210,63,0.45) 50%, rgba(255,210,63,0) 80%);
 }
 
 .intro.is-cam .pc::after { animation: pc-sweep 0.72s ease var(--fill, 0ms) both; }
@@ -1555,36 +1583,58 @@ body {
   100% { opacity: 0; transform: translateX(70%); }
 }
 
-/* 拉平那一刻线框整体提亮，为"交接给真界面"做铺垫 */
+/* 拉平那一刻：线框"变实"——底下的白纸抬起来、描边加重、硬阴影拉开，
+   为交接给真界面做铺垫（这一步之后就该淡出了） */
 .intro.is-cam .pc {
-  background: rgba(180, 212, 255, 0.12);
+  background: var(--white);
   border-color: rgba(var(--iso-line), 0.95);
-  box-shadow: inset 0 0 60px rgba(150, 195, 255, 0.22), 0 0 26px rgba(140, 185, 255, 0.25);
+  box-shadow: 5px 5px 0 rgba(var(--iso-line), 0.18);
   transition: background 0.55s ease, border-color 0.55s ease, box-shadow 0.55s ease;
 }
 
-/* 底板类部件（内容区、左栏）：它们是垫在最下面的大块，
-   所以颜色比里面的小部件更淡，叠在一起才有"一层盖一层"的层次 */
+/* 底板类部件（内容区、左栏）：它们是"桌面"——垫在最下面的一层浅灰纸，
+   比上面的白纸部件暗一点点，叠起来才有"一层盖一层"的层次 */
 .pc-plate {
-  background: rgba(150, 190, 255, 0.055);
-  border-color: rgba(var(--iso-line), 0.5);
-  box-shadow: inset 0 0 70px rgba(120, 170, 255, 0.09);
+  background: rgba(var(--iso-line), 0.06);
+  border-color: rgba(var(--iso-line), 0.62);
+  box-shadow: none;
 }
 
-/* 每个件角上的小标签（sidebar / header / tile.01 ...） */
+.intro.is-cam .pc-plate { background: var(--paper-2); }
+
+/* 卡片件的底色：直接借真界面那六张卡片的配色，
+   飞进来的时候颜色就已经对了，最后交接时接得上（颜色定义在下面 --tint） */
+.pc-tile {
+  background: rgba(var(--tint, 255, 255, 255), 0.9);
+}
+
+.intro.is-cam .pc-tile { background: rgba(var(--tint, 255, 255, 255), 1); }
+
+/* 六张卡片各自的颜色，就是从 style.css 后面那六张真卡片的底色抄来的 */
+.pc-t-game   { --tint: 219, 231, 255; }
+.pc-t-gossip { --tint: 255, 228, 214; }
+.pc-t-acg    { --tint: 255, 225, 238; }
+.pc-t-sport  { --tint: 226, 245, 223; }
+.pc-t-study  { --tint: 221, 243, 234; }
+.pc-t-music  { --tint: 236, 228, 255; }
+.pc-t-plain  { --tint: 255, 248, 236; }
+
+/* 每个件角上的小标签（sidebar / header / tile.01 ...）：
+   做成界面里那种"贴纸"——白纸底 + 墨黑描边 + 硬阴影 */
 .pc-tag {
   position: absolute;
-  top: -21px;
+  top: -22px;
   left: 8px;
   padding: 2px 8px;
   font-family: ui-monospace, Consolas, "Courier New", monospace;
   font-size: 12px;
   letter-spacing: 1.5px;
-  color: #f2f7ff;
+  color: var(--ink);
   white-space: nowrap;
-  background: rgba(10, 14, 22, 0.92);
-  border: 1px solid rgba(var(--iso-line), 0.62);
-  border-radius: 6px;
+  background: var(--paper);
+  border: 1.5px solid var(--ink);
+  border-radius: 7px;
+  box-shadow: 2px 2px 0 rgba(var(--iso-line), 0.75);
   opacity: 0;
   animation: tag-in 0.34s ease var(--tag, 640ms) both;
 }
@@ -1601,11 +1651,15 @@ body {
   position: absolute;
   display: block;
   border-radius: 999px;
-  background: rgba(var(--iso-line), 0.26);
+  background: rgba(var(--iso-line), 0.24);
 }
 
-.pc-line.w1 { left: 7%; top: 22%; width: 34%; height: 26%; border-radius: 7px; background: rgba(var(--iso-hot), 0.34); }
+.pc-line.w1 { left: 7%; top: 22%; width: 34%; height: 26%; border-radius: 7px; background: rgba(var(--iso-hot), 0.62); }
 .pc-line.w2 { left: 7%; top: 58%; width: 22%; height: 11%; }
+
+/* 卡片里的条子用墨色（卡片本身已经是彩色的了，再叠彩色会花）。
+   这里选择器比上面多一层，所以能盖住上面 w1 那条黄色 */
+.pc-tile .pc-line.w1 { background: rgba(var(--iso-line), 0.26); }
 
 /* 左栏那一大片"列表行"：用重复渐变一次画出一行行，省得写一堆 div */
 .pc-list {
@@ -1617,12 +1671,13 @@ body {
   display: block;
   background-image: repeating-linear-gradient(
     to bottom,
-    rgba(var(--iso-line), 0.30) 0 7px,
+    rgba(var(--iso-line), 0.34) 0 7px,
     transparent 7px 19px
   );
 }
 
-/* 卡片右边那块"专属插画"的位置 */
+/* 卡片右边那块"专属插画"的位置。颜色压得很淡，
+   它只是"这儿本来有东西"的示意，抢了色卡片的颜色就不干净了 */
 .pc-art {
   position: absolute;
   right: 6%;
@@ -1631,7 +1686,7 @@ body {
   width: 26%;
   display: block;
   border-radius: 10px;
-  background: rgba(var(--iso-line), 0.16);
+  background: rgba(var(--iso-line), 0.09);
 }
 
 /* 逐件微调，让线框长得更像它对应的真部件 */
@@ -1654,13 +1709,25 @@ body {
   animation: title-in 0.62s cubic-bezier(0.2, 1.08, 0.3, 1) 1.5s both;
 }
 
+/* 大字用墨色 + 一道荧光笔黄打底，跟大厅标题「公开大厅」是同一种画法，
+   所以看着不算"另一个东西"，就是同一支笔写的。
+   下面那道黄为什么从 68% 起：字高差不多占行盒的上 8 成，
+   从 68% 起才正好压在字的"下半截带一点点底"，太高就成删除线了 */
 .iso-title-en {
+  display: inline-block;      /* 必须缩成文字那么宽，不然黄底会横着拉满整屏 */
   font-family: ui-monospace, Consolas, "Courier New", monospace;
   font-size: clamp(30px, 6.4vw, 76px);
   font-weight: 800;
+  line-height: 1.08;          /* 行高贴紧文字，黄条位置才可控 */
   letter-spacing: 0.1em;
-  color: #fff4d6;
-  text-shadow: 0 0 30px rgba(255, 222, 140, 0.55), 0 0 90px rgba(255, 200, 90, 0.28);
+  color: var(--ink);
+  padding: 0 12px 6px;
+  background-image: linear-gradient(transparent 68%, rgba(255, 210, 63, 0.92) 68%);
+}
+
+/* 夜里字是浅色的，黄条要压暗一点才不刺眼 */
+body.night .iso-title-en {
+  background-image: linear-gradient(transparent 68%, rgba(255, 210, 63, 0.40) 68%);
 }
 
 .iso-title-cn {
@@ -1668,7 +1735,7 @@ body {
   font-size: clamp(12px, 1.8vw, 17px);
   letter-spacing: 0.55em;
   text-indent: 0.55em;   /* 字间距会在右边多出一截，缩回来才是真居中 */
-  color: #b6c4d8;
+  color: rgba(var(--iso-line), 0.55);
 }
 
 @keyframes title-in {
@@ -1687,7 +1754,7 @@ body {
   .hud-tl, .hud-tr { top: 14px; font-size: 10px; }
   .hud-tl { left: 16px; }
   .hud-tr { right: 16px; }
-  .hud-lines { left: 16px; top: 50px; gap: 6px; font-size: 12px; }
+  .hud-lines { left: 16px; top: 84px; gap: 6px; font-size: 12px; }
   .hud-line.l3 { font-size: 10.5px; }
   .hud-skip { left: 16px; bottom: 18px; font-size: 10px; }
 
@@ -1698,6 +1765,43 @@ body {
 
 /* 入场动画期间把真界面藏起来：它得先渲染（JS 才量得到位置），但不能让人看见 */
 .main.is-prehide { opacity: 0; }
+
+/* ---------- 动画的夜间配色 ----------
+   线框本身不用改：它用的是 --ink，天黑了自己会翻成米白。
+   要单独调的是"底色上的那些装饰光"和"卡片底色"——白天是浅色 washes，
+   夜里得换成暗光，不然一片糊 */
+body.night .intro {
+  background-image:
+    radial-gradient(var(--grid-dot) 1.1px, transparent 1.2px),
+    radial-gradient(520px 420px at 6% 0%, rgba(255, 210, 63, 0.10), transparent 62%),
+    radial-gradient(560px 460px at 100% 4%, rgba(150, 100, 210, 0.16), transparent 64%),
+    radial-gradient(620px 500px at 0% 100%, rgba(60, 110, 190, 0.16), transparent 64%),
+    radial-gradient(620px 520px at 100% 98%, rgba(70, 150, 120, 0.13), transparent 64%);
+  background-size: 22px 22px, auto, auto, auto, auto;
+}
+
+body.night .intro-vignette {
+  background: radial-gradient(135% 105% at 50% 46%, transparent 46%, rgba(0, 0, 0, 0.62) 100%);
+}
+
+body.night .pc { background: rgba(255, 255, 255, 0.06); }
+body.night .pc-plate { background: rgba(255, 255, 255, 0.025); }
+
+/* 卡片底色换成真界面夜间那套深色（数值和 body.night .tile-* 完全一致） */
+body.night .pc-t-game   { --tint: 38, 49, 77; }
+body.night .pc-t-gossip { --tint: 74, 42, 26; }
+body.night .pc-t-acg    { --tint: 71, 32, 57; }
+body.night .pc-t-sport  { --tint: 29, 58, 36; }
+body.night .pc-t-study  { --tint: 27, 58, 49; }
+body.night .pc-t-music  { --tint: 44, 36, 80; }
+body.night .pc-t-plain  { --tint: 46, 45, 58; }
+
+body.night .pc-tile { background: rgba(var(--tint), 0.8); }
+body.night .intro.is-cam .pc-tile { background: rgba(var(--tint), 1); }
+
+body.night .intro-flash {
+  background: radial-gradient(62% 50% at 50% 50%, rgba(255, 250, 235, 0.55), rgba(255, 248, 230, 0) 72%);
+}
 
 /* ============================================================
    拍一拍特效（每个群一套）
@@ -2179,6 +2283,9 @@ body {
   }
 
   .tile-art { right: 8px; }
+
+  /* 手机上插画区整体左移了 6px，唱机底座得跟着挪，不然会和唱片错开 */
+  .tile-music::after { right: 14px; }
 }
 
 /* ============================================================
@@ -2236,6 +2343,13 @@ body.night .tile-gossip { background: #4a2a1a; }
 body.night .tile-sport  { background: #1d3a24; }
 body.night .tile-study  { background: #1b3a31; }
 body.night .tile-music  { background: #2c2450; }
+
+/* 夜里唱机底座换成深胡桃木色，白天那个浅木色在深底上太扎眼 */
+body.night .tile-music::after {
+  background:
+    radial-gradient(circle, #ffd23f 0 5px, var(--ink) 5px 7px, transparent 7px) no-repeat 90px 46px / 14px 14px,
+    linear-gradient(160deg, #6b5638, #463520);
+}
 
 /* 夜里把几个偏暗的彩色文字提亮一档，不然深底上发闷 */
 body.night .error-text,

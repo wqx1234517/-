@@ -358,15 +358,22 @@ createApp({
       }
 
       // 大厅的卡片：只留完整露在外面的。露一半的飞进来会看着很怪
-      let tiles = [...document.querySelectorAll(".hall .tile")]
-        .map(box)
-        .filter(Boolean)
+      const tileEls = [...document.querySelectorAll(".hall .tile")];
+
+      // 顺便把每张卡身上的风格名（tile-game / tile-acg ...）记下来，
+      // 动画里的线框卡片就能用上真卡片的颜色——交接的时候颜色是接得上的
+      const kindOf = (el) => {
+        const m = el.className.match(/tile-([a-z]+)/);
+        return m ? m[1] : "plain";
+      };
+
+      let tiles = tileEls
+        .map((el) => ({ ...box(el), kind: kindOf(el) }))
         .filter((t) => t.top >= 0 && t.bottom <= base.height);
 
       // 手机上一屏可能连两张卡都放不下，那就退一步：取前两张，削成装得下的大小
       if (tiles.length < 2) {
-        tiles = [...document.querySelectorAll(".hall .tile")].map(box)
-          .filter(Boolean)
+        tiles = tileEls.map((el) => ({ ...box(el), kind: kindOf(el) }))
           .slice(0, 2)
           .map((t) => ({
             ...t,
