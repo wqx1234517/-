@@ -776,6 +776,8 @@ body {
   border: 2.5px solid var(--ink);
   box-shadow: 3px 3px 0 rgba(var(--ink-rgb), 0.9);
   background:
+    /* 唱片压在底座上落下的影子：画在底座上，所以唱片转它不会跟着转 */
+    radial-gradient(ellipse 26px 6px at 38px 58px, rgba(var(--ink-rgb), 0.3) 0 55%, transparent 75%),
     radial-gradient(circle, #f6c453 0 5px, var(--ink) 5px 7px, transparent 7px) no-repeat 90px 46px / 14px 14px,
     linear-gradient(160deg, #f0d9b5, #d9a066);
   z-index: 0;   /* 底座垫在最下面，唱片和唱臂压在它上面 */
@@ -800,7 +802,12 @@ body {
   50% { transform: translateY(-7px) rotate(8deg); opacity: 1; }
 }
 
-/* 唱片：一圈圈纹路 + 黄色中心标，躺在底座上不停旋转 */
+/* 唱片：一圈圈纹路 + 黄色中心标，躺在底座上不停旋转
+   两个细节要注意：
+   1) 这里不能用 box-shadow —— 阴影是唱片的一部分，唱片一转它就跟着绕圈，
+      看着像底下有个黑块在转。落影改画在不动的底座上（见下面 .tile-music::after）。
+   2) 光有同心圆的话转起来肉眼看不出动静，所以加了一道扇形高光（唱片反光），
+      它扫过去的时候才看得出唱片真的在转 */
 .tile-music .tile-art::before {
   content: "";
   position: absolute;
@@ -808,8 +815,9 @@ body {
   width: 52px; height: 52px;
   border-radius: 50%;
   border: 2.5px solid var(--ink);
-  box-shadow: 3px 3px 0 rgba(var(--ink-rgb), 0.9);
   background:
+    radial-gradient(circle, #241f1a 0 2.5px, transparent 2.5px),
+    conic-gradient(from 20deg, rgba(255, 255, 255, 0.18) 0 46deg, transparent 46deg 360deg),
     radial-gradient(circle, #ffd23f 0 9px, var(--ink) 9px 11px, transparent 11px),
     repeating-radial-gradient(circle, #33302a 0 2px, #4a463e 2px 5px);
   animation: spin 3.2s linear infinite;
@@ -2347,6 +2355,7 @@ body.night .tile-music  { background: #2c2450; }
 /* 夜里唱机底座换成深胡桃木色，白天那个浅木色在深底上太扎眼 */
 body.night .tile-music::after {
   background:
+    radial-gradient(ellipse 26px 6px at 38px 58px, rgba(0, 0, 0, 0.45) 0 55%, transparent 75%),
     radial-gradient(circle, #ffd23f 0 5px, var(--ink) 5px 7px, transparent 7px) no-repeat 90px 46px / 14px 14px,
     linear-gradient(160deg, #6b5638, #463520);
 }
