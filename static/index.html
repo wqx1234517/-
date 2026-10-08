@@ -6,7 +6,7 @@
   <title>轻量聊天室</title>
   <!-- 文件名后的 ?v=数字 是版本号：改了前端代码就把数字加一，
        浏览器会当新文件下载，手机不用清缓存也能更新 -->
-  <link rel="stylesheet" href="/style.css?v=45">
+  <link rel="stylesheet" href="/style.css?v=46">
 </head>
 <body>
 
@@ -296,6 +296,22 @@
     </section>
   </div>
 
+  <!-- 登录后的入场动画：盖住整个页面播一小段，播完自己消失露出聊天室 -->
+  <div v-if="entering" class="enter-mask" aria-hidden="true">
+    <div class="enter-card">
+      <!-- 四个小图标：像随手贴上去的贴纸，从四个角飞进来 -->
+      <span class="enter-sticker s1">💬</span>
+      <span class="enter-sticker s2">✨</span>
+      <span class="enter-sticker s3">🎉</span>
+      <span class="enter-sticker s4">🌟</span>
+
+      <div class="enter-avatar">{{ myAvatar }}</div>
+      <div class="enter-title">轻量聊天室</div>
+      <div class="enter-sub">欢迎回来，{{ myName }}</div>
+      <div class="enter-bar"><i></i></div>
+    </div>
+  </div>
+
   <!-- 复制成功之类的小提示，飘在屏幕下方 -->
   <div v-if="toast" class="toast">{{ toast }}</div>
 
@@ -305,6 +321,6 @@
 
 <!-- Vue 3 下载到了项目里本地加载，不走 CDN：断网也能跑 -->
 <script src="/vue.global.prod.js"></script>
-<script src="/app.js?v=45"></script>
+<script src="/app.js?v=46"></script>
 </body>
 </html>

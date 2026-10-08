@@ -1285,6 +1285,152 @@ body {
 }
 
 /* ============================================================
+   登录后的入场动画
+   风格跟整体统一：奶油纸底 + 粗描边 + 硬阴影。
+   动作设计成"把一张贴纸啪地拍在纸上"——缩小转正、过一点再回弹、最后压住
+   ============================================================ */
+
+/* 铺满全屏的幕布：跟页面同一套纸底，所以盖上去不会显得突兀 */
+.enter-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+  background-color: var(--page);
+  background-image:
+    radial-gradient(var(--grid-dot) 1.1px, transparent 1.2px),
+    radial-gradient(700px 500px at 10% 0%, rgba(255, 210, 63, 0.16), transparent 60%),
+    radial-gradient(700px 500px at 95% 100%, rgba(58, 134, 255, 0.10), transparent 60%);
+  background-size: 22px 22px, auto, auto;
+  animation: enter-mask-out .45s ease .95s forwards;
+}
+
+/* 最后整块淡出，露出后面的聊天室 */
+@keyframes enter-mask-out {
+  to { opacity: 0; visibility: hidden; }
+}
+
+/* 中间那张"贴纸"：先高高抬起、歪着，再拍下来压住 */
+.enter-card {
+  position: relative;
+  width: 100%;
+  max-width: 330px;
+  text-align: center;
+  padding: 34px 26px 26px;
+  background: var(--paper);
+  border: 2.5px solid var(--ink);
+  border-radius: 20px;
+  box-shadow: 8px 8px 0 rgba(var(--ink-rgb), 0.9);
+  transform: scale(1.5) rotate(-9deg);
+  opacity: 0;
+  animation: enter-stamp .55s cubic-bezier(.2, 1.5, .4, 1) forwards;
+}
+
+@keyframes enter-stamp {
+  0%   { opacity: 0; transform: scale(1.5) rotate(-9deg); }
+  60%  { opacity: 1; transform: scale(.94) rotate(2deg); }
+  100% { opacity: 1; transform: scale(1) rotate(-1.5deg); }
+}
+
+/* 头像：白色圆贴纸，弹出来的时候带一点旋转 */
+.enter-avatar {
+  width: 76px;
+  height: 76px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: var(--white);
+  border: 2.5px solid var(--ink);
+  box-shadow: 4px 4px 0 rgba(var(--ink-rgb), 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 38px;
+  opacity: 0;
+  animation: enter-pop .5s cubic-bezier(.2, 1.6, .4, 1) .28s forwards;
+}
+
+@keyframes enter-pop {
+  0%   { opacity: 0; transform: scale(.3) rotate(-25deg); }
+  70%  { opacity: 1; transform: scale(1.12) rotate(6deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+/* 标题：荧光笔那道黄从左往右扫过去（--hl 是标题通用的划重点背景） */
+.enter-title {
+  display: inline-block;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 0 4px;
+  background-image: var(--hl);
+  background-repeat: no-repeat;
+  background-size: 0% 100%;
+  animation: enter-wipe .5s ease .5s forwards;
+}
+
+@keyframes enter-wipe {
+  to { background-size: 100% 100%; }
+}
+
+/* "欢迎回来，XXX"：字一个个轻轻浮上来（letter-spacing 配合 opacity） */
+.enter-sub {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 9px;
+  opacity: 0;
+  animation: enter-fade-up .45s ease .68s forwards;
+}
+
+@keyframes enter-fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* 四个小贴纸：从四个角飞进来"啪"地贴上，一个比一个晚一点点 */
+.enter-sticker {
+  position: absolute;
+  font-size: 22px;
+  opacity: 0;
+  animation: enter-slap .5s cubic-bezier(.2, 1.5, .4, 1) forwards;
+}
+
+.enter-sticker.s1 { left: 14px;  top: 16px;    animation-delay: .62s; }
+.enter-sticker.s2 { right: 16px; top: 20px;    animation-delay: .70s; }
+.enter-sticker.s3 { left: 18px;  bottom: 22px; animation-delay: .78s; }
+.enter-sticker.s4 { right: 18px; bottom: 18px; animation-delay: .86s; }
+
+@keyframes enter-slap {
+  0%   { opacity: 0; transform: scale(2.2) rotate(-40deg); }
+  70%  { opacity: 1; transform: scale(.9) rotate(10deg); }
+  100% { opacity: 1; transform: scale(1) rotate(-6deg); }
+}
+
+/* 最下面一条进度条：走完就进场完毕，让人知道"马上就好" */
+.enter-bar {
+  margin-top: 18px;
+  height: 6px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--paper-2);
+  overflow: hidden;
+}
+
+.enter-bar i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: #ffd23f;
+  animation: enter-bar-fill 1.2s ease .25s forwards;
+}
+
+@keyframes enter-bar-fill {
+  to { width: 100%; }
+}
+
+/* ============================================================
    拍一拍特效（每个群一套）
    特效层：铺满全屏、不挡鼠标，所有动画元素都是 JS 临时塞进来的，
    播完自动删除，所以平时这层是空的、完全不碍事

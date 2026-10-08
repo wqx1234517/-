@@ -64,6 +64,8 @@ createApp({
       reads: {},             // 群里每个人读到哪条消息了：{用户名: 消息id}
       soundOn: true,         // 新消息提示音开不开
       night: false,          // 夜间模式开不开（点🌙/☀️切换，选择存进 localStorage）
+      entering: false,       // 登录后的入场动画在不在播
+      enterTimer: null,      // 播完把它关掉的定时器
 
       myAvatar: "🐱",        // 我选的头像（一个表情符号）
       // 可选的头像列表。用表情符号当头像最省事：不用上传图片，也不用存图片文件
@@ -233,11 +235,28 @@ createApp({
 
       this.loginName = "";
       this.loginPwd = "";
+
+      // 放完入场动画再干活：动画期间把聊天室盖住，
+      // 等它淡出时数据刚好加载好，看起来就是"动画结束，房间已经在那儿了"
+      this.playEnter();
       this.loadRooms();
       this.connectNotify();
 
       // 如果是点邀请链接进来的，登录完直接进入那个群
       this.enterByInviteLink();
+    },
+
+    // 登录成功后的入场动画：盖住页面播一小段，播完自己消失
+    playEnter() {
+      // 系统里开了"减弱动态效果"的人（有些人看动画会头晕）直接跳过
+      if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        return;
+      }
+
+      this.entering = true;
+      clearTimeout(this.enterTimer);
+      // 1.4 秒：样式里最后那段淡出是 .95s 开始的，这里留够时间让它走完
+      this.enterTimer = setTimeout(() => { this.entering = false; }, 1400);
     },
 
     logout() {
