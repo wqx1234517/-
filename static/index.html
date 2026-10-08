@@ -6,7 +6,7 @@
   <title>轻量聊天室</title>
   <!-- 文件名后的 ?v=数字 是版本号：改了前端代码就把数字加一，
        浏览器会当新文件下载，手机不用清缓存也能更新 -->
-  <link rel="stylesheet" href="/style.css?v=46">
+  <link rel="stylesheet" href="/style.css?v=48">
 </head>
 <body>
 
@@ -47,7 +47,8 @@
   </div>
 
   <!-- ============ 已登录：左边目录 + 右边内容 ============ -->
-  <div v-else class="main">
+  <!-- is-prehide：入场动画期间真界面先渲染出来（不然量不到位置）、但先别让人看见 -->
+  <div v-else class="main" :class="{ 'is-prehide': introGate }">
 
     <!-- ---------- 左栏 ---------- -->
     <aside class="sidebar">
@@ -296,20 +297,74 @@
     </section>
   </div>
 
-  <!-- 登录后的入场动画：盖住整个页面播一小段，播完自己消失露出聊天室 -->
-  <div v-if="entering" class="enter-mask" aria-hidden="true">
-    <div class="enter-card">
-      <!-- 四个小图标：像随手贴上去的贴纸，从四个角飞进来 -->
-      <span class="enter-sticker s1">💬</span>
-      <span class="enter-sticker s2">✨</span>
-      <span class="enter-sticker s3">🎉</span>
-      <span class="enter-sticker s4">🌟</span>
+  <!-- ============ 入场动画：等距装配 ============
+       把「公开大厅」拆成几个部件，先摆成斜着的等距视角，让它们从不同方向飞进来卡好位，
+       再把镜头拉平——拉平后线框正好压在真界面身上，就完成了交接。
+       点屏幕任意位置可以直接跳过 -->
+  <div v-if="intro" class="intro"
+       :class="{ 'is-cam': introCam, 'is-out': introOut, 'is-skip': introSkip }"
+       @click="skipIntro">
+    <div class="intro-bg"></div>
+    <div class="intro-vignette"></div>
 
-      <div class="enter-avatar">{{ myAvatar }}</div>
-      <div class="enter-title">轻量聊天室</div>
-      <div class="enter-sub">欢迎回来，{{ myName }}</div>
-      <div class="enter-bar"><i></i></div>
+    <!-- HUD：屏幕上那几行小字。它是平的，不跟着 3D 平面转 -->
+    <div class="intro-hud">
+      <div class="hud-tl">◇ LAYOUT WORKBENCH</div>
+      <div class="hud-tr">{{ night ? 'NIGHT' : 'DAY' }} · v1.0</div>
+      <div class="hud-lines">
+        <div class="hud-line l1">› Lay down your pieces</div>
+        <div class="hud-line l2">› And let's begin</div>
+        <div class="hud-line l3">› 正在装配「公开大厅」 {{ introStep }}/{{ introTotal }}</div>
+      </div>
+      <div class="hud-skip">点击任意位置跳过</div>
+      <div class="hud-bar"><i></i></div>
     </div>
+
+    <!-- 3D 舞台：里面的东西全都在同一个"斜着摊开的桌面"上 -->
+    <div class="intro-stage">
+      <div class="iso" :style="isoStyle">
+
+        <!-- 右边整块内容区（写在前面的会垫在下面，像底板） -->
+        <div class="pc pc-plate pc-hall" :style="pcStyle(introBox.hall, [170, 120, -5], 300)">
+          <span class="pc-tag is-right">hall</span>
+        </div>
+
+        <!-- 左栏整块 -->
+        <div class="pc pc-plate pc-sidebar" :style="pcStyle(introBox.sidebar, [-170, -40, -10], 380)">
+          <span class="pc-tag">sidebar</span>
+          <i class="pc-list"></i>
+        </div>
+
+        <!-- 大厅标题那块（"公开大厅" + 那行说明） -->
+        <div class="pc pc-header" :style="pcStyle(introBox.header, [-70, -200, 8], 470)">
+          <span class="pc-tag is-right">header</span>
+          <i class="pc-line w1"></i><i class="pc-line w2"></i>
+        </div>
+
+        <!-- 大厅里那几张贴纸卡片，一张一张飞进来 -->
+        <div v-for="(t, i) in introBox.tiles" :key="'pc' + i" class="pc pc-tile"
+             :style="pcStyle(t)">
+          <span class="pc-tag">{{ t.label }}</span>
+          <i class="pc-art"></i>
+          <i class="pc-line w1"></i><i class="pc-line w2"></i>
+        </div>
+
+        <!-- 左栏底部：建群 / 用邀请码加入 -->
+        <div class="pc pc-dock" :style="pcStyle(introBox.dock, [-110, 220, -12], 1120)">
+          <span class="pc-tag is-right">dock</span>
+          <i class="pc-line w1"></i><i class="pc-line w2"></i>
+        </div>
+
+        <!-- 中间那行大字，跟着平面一起斜着 -->
+        <div class="iso-title">
+          <div class="iso-title-en">PUBLIC&nbsp;HALL</div>
+          <div class="iso-title-cn">公开大厅</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 最后那一下暖白闪光：像"啪"地把灯打开 -->
+    <div class="intro-flash"></div>
   </div>
 
   <!-- 复制成功之类的小提示，飘在屏幕下方 -->
@@ -321,6 +376,6 @@
 
 <!-- Vue 3 下载到了项目里本地加载，不走 CDN：断网也能跑 -->
 <script src="/vue.global.prod.js"></script>
-<script src="/app.js?v=46"></script>
+<script src="/app.js?v=48"></script>
 </body>
 </html>

@@ -678,18 +678,23 @@ body {
   border: 3px solid rgba(var(--ink-rgb), 0.18);
 }
 
-/* 球：橙色 + 十字球纹，上下弹跳 */
+/* 球：橙底 + 一竖一横的分割线 + 左右两道弯弧，这才是篮球该有的样子
+   弯弧的做法：CSS 画不出真正的弧线，所以拿「圆环渐变」糊了一个圆心在球外面的大圆，
+   只有落在球里的那一段露出来 —— 看着就是一条弧，超出球的部分被 border-radius 裁掉了 */
 .tile-sport .tile-art::before {
   content: "";
   position: absolute;
-  left: 38px; top: 18px;
-  width: 42px; height: 42px;
+  left: 36px; top: 16px;
+  width: 46px; height: 46px;
   border-radius: 50%;
   border: 2.5px solid var(--ink);
+  box-shadow: 3px 3px 0 rgba(var(--ink-rgb), 0.9);
   background:
-    linear-gradient(var(--ink), var(--ink)) no-repeat center / 2.5px 100%,
-    linear-gradient(var(--ink), var(--ink)) no-repeat center / 100% 2.5px,
-    radial-gradient(circle at 35% 30%, #ffb066, #ff8a3d);
+    radial-gradient(circle 29px at -17px 23px, transparent 0 26.5px, var(--ink) 26.5px 29px, transparent 29px),
+    radial-gradient(circle 29px at 63px 23px, transparent 0 26.5px, var(--ink) 26.5px 29px, transparent 29px),
+    linear-gradient(var(--ink), var(--ink)) no-repeat 21.75px 0 / 2.5px 100%,
+    linear-gradient(var(--ink), var(--ink)) no-repeat 0 21.75px / 100% 2.5px,
+    radial-gradient(circle at 34% 28%, #ffb066, #ff8a3d);
   animation: ball-bounce 0.85s cubic-bezier(0.5, 0, 0.5, 1) infinite alternate;
 }
 
@@ -702,8 +707,8 @@ body {
 .tile-sport .tile-art::after {
   content: "";
   position: absolute;
-  left: 40px; top: 94px;
-  width: 38px; height: 8px;
+  left: 38px; top: 96px;
+  width: 42px; height: 8px;
   border-radius: 50%;
   background: rgba(var(--ink-rgb), 0.22);
   animation: shadow-pulse 0.85s cubic-bezier(0.5, 0, 0.5, 1) infinite alternate;
@@ -755,7 +760,7 @@ body {
   50% { transform: rotate(44deg); }
 }
 
-/* --- 音乐群：一张黑胶唱片真的在转，旁边带唱臂 --- */
+/* --- 音乐群：一支复古麦克风在唱歌，旁边飘音符和三道声波 --- */
 .tile-music { background: #ece4ff; }
 
 /* 一个跳动的音符 */
@@ -774,36 +779,56 @@ body {
   50% { transform: translateY(-7px) rotate(8deg); opacity: 1; }
 }
 
-/* 唱片：一圈圈纹路 + 黄色中心标，不停旋转 */
+/* 话筒头：金属网罩是横竖两层细线交叉出来的网格，轻轻上下浮动像有人在唱 */
 .tile-music .tile-art::before {
   content: "";
   position: absolute;
-  left: 26px; top: 20px;
-  width: 72px; height: 72px;
-  border-radius: 50%;
+  left: 40px; top: 6px;
+  width: 40px; height: 48px;
   border: 2.5px solid var(--ink);
+  border-radius: 20px 20px 14px 14px;
   box-shadow: 3px 3px 0 rgba(var(--ink-rgb), 0.9);
   background:
-    radial-gradient(circle, #ffd23f 0 10px, var(--ink) 10px 12px, transparent 12px),
-    repeating-radial-gradient(circle, #33302a 0 2px, #4a463e 2px 5px);
-  animation: spin 3.2s linear infinite;
+    repeating-linear-gradient(90deg, rgba(var(--ink-rgb), 0.42) 0 1.5px, transparent 1.5px 7px),
+    repeating-linear-gradient(0deg, rgba(var(--ink-rgb), 0.42) 0 1.5px, transparent 1.5px 7px),
+    linear-gradient(160deg, #f4f6fa, #b9c2d4);
+  animation: mic-float 1.6s ease-in-out infinite;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+@keyframes mic-float {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50% { transform: translateY(-5px) rotate(3deg); }
 }
 
-/* 唱臂：红色支点 + 一根细杆 */
+/* 话筒下面的支架：顶部一个圆接头 + 一根竖杆 + 一块底盘 */
 .tile-music .tile-art::after {
   content: "";
   position: absolute;
-  right: 6px; top: 14px;
-  width: 14px; height: 50px;
+  left: 42px; top: 52px;
+  width: 40px; height: 46px;
   background:
-    radial-gradient(circle, #ff5c38 0 5px, var(--ink) 5px 7px, transparent 7px) no-repeat center 0 / 14px 14px,
-    linear-gradient(var(--ink), var(--ink)) no-repeat center 10px / 3px 38px;
-  transform: rotate(-28deg);
-  transform-origin: top center;
+    radial-gradient(circle, var(--ink) 0 5px, transparent 5px) no-repeat 15px 0 / 10px 10px,
+    linear-gradient(var(--ink), var(--ink)) no-repeat 18px 5px / 4px 35px,
+    linear-gradient(var(--ink), var(--ink)) no-repeat 4px 38px / 32px 4px;
+}
+
+/* 右边三道声波：跟篮球的弧一个招数，圆心放在盒子外面，只露出弯的那一段
+   三条弧共用一个圆心、半径一圈比一圈大，才会像声音一圈圈往外扩散 */
+.tile-music::after {
+  content: "";
+  position: absolute;
+  right: 10px; top: 34px;
+  width: 26px; height: 52px;
+  background:
+    radial-gradient(circle 34px at -8px 26px, transparent 0 31.5px, var(--ink) 31.5px 34px, transparent 34px),
+    radial-gradient(circle 26px at -8px 26px, transparent 0 23.5px, var(--ink) 23.5px 26px, transparent 26px),
+    radial-gradient(circle 18px at -8px 26px, transparent 0 15.5px, var(--ink) 15.5px 18px, transparent 18px);
+  animation: wave-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes wave-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.85; }
 }
 
 /* 兜底风格（以后加了新群没配样式就用它） */
@@ -1285,150 +1310,394 @@ body {
 }
 
 /* ============================================================
-   登录后的入场动画
-   风格跟整体统一：奶油纸底 + 粗描边 + 硬阴影。
-   动作设计成"把一张贴纸啪地拍在纸上"——缩小转正、过一点再回弹、最后压住
+   入场动画 · 等距装配（isometric assembly）
+   想做出来的感觉：把界面当成一堆零件摊在桌上——先用斜着的"等距视角"看着它们，
+   几个线框部件从不同方向飞进来、啪地卡进自己的位置，最后镜头一转拉平，
+   线框正好对上真正的界面，交接完成。
+
+   为什么这么写（几个关键点）：
+   1. 用真 CSS 3D（rotateX + rotateZ）而不是画一张假的斜图：
+      因为最后要靠"把角度转回 0"过渡到真界面，只有真 3D 转得动、还能对齐。
+   2. 每个线框件的位置不写死，是 JS 量出真界面里对应元素的真实位置再传进来的
+      （见 app.js 的 measureIntro），所以拉平那一刻能严丝合缝地重合。
+   3. 一个 @keyframes 管所有件：飞入方向用 CSS 变量 --fx/--fy/--fr 传进去，
+      以后想加一个部件，只要在标签上多写一行 style，不用再抄一段动画。
    ============================================================ */
 
-/* 铺满全屏的幕布：跟页面同一套纸底，所以盖上去不会显得突兀 */
-.enter-mask {
+.intro {
   position: fixed;
   inset: 0;
-  z-index: 95;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 22px;
-  background-color: var(--page);
+  z-index: 200;
+  overflow: hidden;
+  cursor: pointer;              /* 点哪儿都能跳过，所以整块都做成"能点"的 */
+  background: #07080c;
+  --iso-line: 198, 222, 255;    /* 线框的冷白（三原色数字，方便拼各种透明度） */
+  --iso-hot: 255, 232, 150;     /* 高亮的暖黄，跟白天的"荧光笔黄"是一条血脉 */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* 斜着铺开的网格"地板"：比纯色背景多一点纵深，但别抢戏 */
+.intro-bg {
+  position: absolute;
+  inset: -20%;
   background-image:
-    radial-gradient(var(--grid-dot) 1.1px, transparent 1.2px),
-    radial-gradient(700px 500px at 10% 0%, rgba(255, 210, 63, 0.16), transparent 60%),
-    radial-gradient(700px 500px at 95% 100%, rgba(58, 134, 255, 0.10), transparent 60%);
-  background-size: 22px 22px, auto, auto;
-  animation: enter-mask-out .45s ease .95s forwards;
+    radial-gradient(120% 80% at 50% 42%, rgba(96, 138, 210, 0.20), transparent 62%),
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: auto, 48px 48px, 48px 48px;
+  transform: perspective(700px) rotateX(26deg);
+  animation: intro-bg-in 0.55s ease both;
 }
 
-/* 最后整块淡出，露出后面的聊天室 */
-@keyframes enter-mask-out {
-  to { opacity: 0; visibility: hidden; }
+@keyframes intro-bg-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
-/* 中间那张"贴纸"：先高高抬起、歪着，再拍下来压住 */
-.enter-card {
-  position: relative;
-  width: 100%;
-  max-width: 330px;
-  text-align: center;
-  padding: 34px 26px 26px;
-  background: var(--paper);
-  border: 2.5px solid var(--ink);
-  border-radius: 20px;
-  box-shadow: 8px 8px 0 rgba(var(--ink-rgb), 0.9);
-  transform: scale(1.5) rotate(-9deg);
+/* 四角压暗，视线自然收到中间那块 */
+.intro-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(130% 100% at 50% 50%, transparent 45%, rgba(0, 0, 0, 0.72) 100%);
+}
+
+/* 暖白闪光：只在最后一瞬间闪一下，像"啪"地把灯打开 */
+.intro-flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
   opacity: 0;
-  animation: enter-stamp .55s cubic-bezier(.2, 1.5, .4, 1) forwards;
+  background: radial-gradient(58% 46% at 50% 50%, #fff6e0, rgba(255, 240, 205, 0) 72%);
 }
 
-@keyframes enter-stamp {
-  0%   { opacity: 0; transform: scale(1.5) rotate(-9deg); }
-  60%  { opacity: 1; transform: scale(.94) rotate(2deg); }
-  100% { opacity: 1; transform: scale(1) rotate(-1.5deg); }
+.intro.is-out .intro-flash { animation: intro-flash 0.46s ease both; }
+
+@keyframes intro-flash {
+  0%   { opacity: 0; }
+  30%  { opacity: 0.5; }
+  100% { opacity: 0; }
 }
 
-/* 头像：白色圆贴纸，弹出来的时候带一点旋转 */
-.enter-avatar {
-  width: 76px;
-  height: 76px;
-  margin: 0 auto 14px;
-  border-radius: 50%;
-  background: var(--white);
-  border: 2.5px solid var(--ink);
-  box-shadow: 4px 4px 0 rgba(var(--ink-rgb), 0.9);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 38px;
+/* ---------- HUD：屏幕上那几行小字（平的，不跟着 3D 转） ---------- */
+.intro-hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, "Courier New", monospace;
+  color: #d5dfee;
+}
+
+.hud-tl, .hud-tr {
+  position: absolute;
+  top: 20px;
+  font-size: 11.5px;
+  letter-spacing: 2px;
   opacity: 0;
-  animation: enter-pop .5s cubic-bezier(.2, 1.6, .4, 1) .28s forwards;
+  animation: hud-in 0.45s ease both;
 }
 
-@keyframes enter-pop {
-  0%   { opacity: 0; transform: scale(.3) rotate(-25deg); }
-  70%  { opacity: 1; transform: scale(1.12) rotate(6deg); }
-  100% { opacity: 1; transform: scale(1) rotate(0deg); }
-}
+.hud-tl { left: 26px; animation-delay: 0.15s; }
+.hud-tr { right: 26px; color: #8a97ad; animation-delay: 0.28s; }
 
-/* 标题：荧光笔那道黄从左往右扫过去（--hl 是标题通用的划重点背景） */
-.enter-title {
-  display: inline-block;
-  font-size: 24px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  padding: 0 4px;
-  background-image: var(--hl);
-  background-repeat: no-repeat;
-  background-size: 0% 100%;
-  animation: enter-wipe .5s ease .5s forwards;
-}
-
-@keyframes enter-wipe {
-  to { background-size: 100% 100%; }
-}
-
-/* "欢迎回来，XXX"：字一个个轻轻浮上来（letter-spacing 配合 opacity） */
-.enter-sub {
-  font-size: 13px;
-  color: var(--muted);
-  margin-top: 9px;
-  opacity: 0;
-  animation: enter-fade-up .45s ease .68s forwards;
-}
-
-@keyframes enter-fade-up {
-  from { opacity: 0; transform: translateY(8px); }
+@keyframes hud-in {
+  from { opacity: 0; transform: translateY(-6px); }
   to   { opacity: 1; transform: none; }
 }
 
-/* 四个小贴纸：从四个角飞进来"啪"地贴上，一个比一个晚一点点 */
-.enter-sticker {
+/* 左上那几行字：跟参考图一样，一句一句往外冒 */
+.hud-lines {
   position: absolute;
-  font-size: 22px;
+  left: 26px;
+  top: 62px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13.5px;
+  letter-spacing: 1px;
+}
+
+.hud-line {
   opacity: 0;
-  animation: enter-slap .5s cubic-bezier(.2, 1.5, .4, 1) forwards;
+  white-space: nowrap;
+  animation: hud-line-in 0.45s cubic-bezier(0.2, 0.9, 0.3, 1) both;
 }
 
-.enter-sticker.s1 { left: 14px;  top: 16px;    animation-delay: .62s; }
-.enter-sticker.s2 { right: 16px; top: 20px;    animation-delay: .70s; }
-.enter-sticker.s3 { left: 18px;  bottom: 22px; animation-delay: .78s; }
-.enter-sticker.s4 { right: 18px; bottom: 18px; animation-delay: .86s; }
+.hud-line.l1 { animation-delay: 0.5s; }
+.hud-line.l2 { animation-delay: 1.35s; color: rgba(var(--iso-hot), 0.92); }
+.hud-line.l3 { animation-delay: 1.7s; font-size: 11.5px; color: #8a97ad; }
 
-@keyframes enter-slap {
-  0%   { opacity: 0; transform: scale(2.2) rotate(-40deg); }
-  70%  { opacity: 1; transform: scale(.9) rotate(10deg); }
-  100% { opacity: 1; transform: scale(1) rotate(-6deg); }
+@keyframes hud-line-in {
+  from { opacity: 0; transform: translateX(-10px); }
+  to   { opacity: 1; transform: none; }
 }
 
-/* 最下面一条进度条：走完就进场完毕，让人知道"马上就好" */
-.enter-bar {
-  margin-top: 18px;
-  height: 6px;
-  border: 2px solid var(--ink);
-  border-radius: 999px;
-  background: var(--paper-2);
-  overflow: hidden;
+.hud-skip {
+  position: absolute;
+  left: 26px;
+  bottom: 22px;
+  font-size: 11.5px;
+  color: #6f7b90;
+  letter-spacing: 1px;
+  animation: hud-in 0.5s ease 2.4s both;
 }
 
-.enter-bar i {
+/* 底部一条进度线：走完就进场完毕，让人知道还剩多久 */
+.hud-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.hud-bar i {
   display: block;
   height: 100%;
   width: 0;
-  background: #ffd23f;
-  animation: enter-bar-fill 1.2s ease .25s forwards;
+  background: linear-gradient(90deg, #7fb1ff, #ffe896);
+  box-shadow: 0 0 14px rgba(255, 232, 150, 0.75);
+  animation: hud-fill 3.56s linear both;
 }
 
-@keyframes enter-bar-fill {
-  to { width: 100%; }
+@keyframes hud-fill { to { width: 100%; } }
+
+/* ---------- 3D 舞台 ---------- */
+.intro-stage {
+  position: absolute;
+  inset: 0;
+  perspective: 1500px;
+  perspective-origin: 50% 50%;
 }
+
+/* 那块"斜着摊开的桌面"：位置和大小由 JS 量出来的真界面决定。
+   为什么纵向上写 -57% 而不是 -50%：斜着看的时候有透视（近大远小），
+   投影出来的图形会整体往下偏一点，往上抬 7% 正好把构图摆回屏幕中间。
+   镜头拉平时会走回 -50%，这点位移看起来就像镜头在归位 */
+.iso {
+  position: absolute;
+  transform-style: preserve-3d;
+  transform: translate(-50%, -57%) rotateX(58deg) rotateZ(-32deg) scale(0.74);
+  transition: transform 0.9s cubic-bezier(0.56, 0.03, 0.2, 1);
+  will-change: transform;
+}
+
+/* 镜头拉平：角度转回 0，缩放回到 1（严丝合缝对上真界面）。
+   这一步就是"从零件图过渡到真正的界面"——拉平之后线框正好压在真元素上 */
+.intro.is-cam .iso {
+  transform: translate(-50%, -50%) rotateX(0deg) rotateZ(0deg) scale(1);
+}
+/* 被点过跳过时，把 1 秒的镜头运动压成 0.3 秒，别让人干等 */
+.intro.is-skip .iso { transition-duration: 0.3s; }
+
+/* 收尾：再轻轻推近一点（像镜头穿过去），同时整块幕布淡出，真界面就露出来了 */
+.intro.is-out .iso { transform: translate(-50%, -50%) rotateX(0deg) rotateZ(0deg) scale(1.07); }
+.intro.is-out { opacity: 0; transition: opacity 0.44s ease; }
+
+/* ---------- 线框部件（pc = piece） ---------- */
+.pc {
+  position: absolute;
+  border: 1.5px solid rgba(var(--iso-line), 0.55);
+  border-radius: 12px;
+  background: rgba(150, 190, 255, 0.05);
+  box-shadow: inset 0 0 44px rgba(120, 170, 255, 0.10);
+  opacity: 0;
+  animation: pc-in 0.72s cubic-bezier(0.18, 0.92, 0.22, 1.04) var(--d, 0ms) both;
+}
+
+/* 飞入：起点由每件自己的 --fx/--fy/--fr 决定。
+   缓动曲线里那个 1.04 比 1 大一点点，落位时就会有一丝"咔"的回弹感 */
+@keyframes pc-in {
+  from {
+    opacity: 0;
+    transform: translate3d(var(--fx, 0%), var(--fy, 0%), 0) rotate(var(--fr, 0deg)) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+  }
+}
+
+/* 落位那一下的白闪：证明"卡进去了" */
+.pc::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  border: 1.5px solid rgba(var(--iso-hot), 0.9);
+  opacity: 0;
+  animation: pc-hit 0.42s ease var(--hit, 600ms) both;
+}
+
+@keyframes pc-hit {
+  0%   { opacity: 0; }
+  35%  { opacity: 0.95; }
+  100% { opacity: 0; }
+}
+
+/* 扫过一道光：镜头拉平时从每件左边扫到右边，像"实物正在显影" */
+.pc::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  background: linear-gradient(100deg, rgba(255,255,255,0) 20%, rgba(255,255,255,0.6) 50%, rgba(255,255,255,0) 80%);
+}
+
+.intro.is-cam .pc::after { animation: pc-sweep 0.72s ease var(--fill, 0ms) both; }
+
+@keyframes pc-sweep {
+  0%   { opacity: 0; transform: translateX(-70%); }
+  45%  { opacity: 0.75; }
+  100% { opacity: 0; transform: translateX(70%); }
+}
+
+/* 拉平那一刻线框整体提亮，为"交接给真界面"做铺垫 */
+.intro.is-cam .pc {
+  background: rgba(180, 212, 255, 0.12);
+  border-color: rgba(var(--iso-line), 0.95);
+  box-shadow: inset 0 0 60px rgba(150, 195, 255, 0.22), 0 0 26px rgba(140, 185, 255, 0.25);
+  transition: background 0.55s ease, border-color 0.55s ease, box-shadow 0.55s ease;
+}
+
+/* 底板类部件（内容区、左栏）：它们是垫在最下面的大块，
+   所以颜色比里面的小部件更淡，叠在一起才有"一层盖一层"的层次 */
+.pc-plate {
+  background: rgba(150, 190, 255, 0.055);
+  border-color: rgba(var(--iso-line), 0.5);
+  box-shadow: inset 0 0 70px rgba(120, 170, 255, 0.09);
+}
+
+/* 每个件角上的小标签（sidebar / header / tile.01 ...） */
+.pc-tag {
+  position: absolute;
+  top: -21px;
+  left: 8px;
+  padding: 2px 8px;
+  font-family: ui-monospace, Consolas, "Courier New", monospace;
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  color: #f2f7ff;
+  white-space: nowrap;
+  background: rgba(10, 14, 22, 0.92);
+  border: 1px solid rgba(var(--iso-line), 0.62);
+  border-radius: 6px;
+  opacity: 0;
+  animation: tag-in 0.34s ease var(--tag, 640ms) both;
+}
+
+.pc-tag.is-right { left: auto; right: 8px; }
+
+@keyframes tag-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* 线框件里的"假内容条"：尺寸全用百分比，件大件小都合适 */
+.pc-line {
+  position: absolute;
+  display: block;
+  border-radius: 999px;
+  background: rgba(var(--iso-line), 0.26);
+}
+
+.pc-line.w1 { left: 7%; top: 22%; width: 34%; height: 26%; border-radius: 7px; background: rgba(var(--iso-hot), 0.34); }
+.pc-line.w2 { left: 7%; top: 58%; width: 22%; height: 11%; }
+
+/* 左栏那一大片"列表行"：用重复渐变一次画出一行行，省得写一堆 div */
+.pc-list {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 8%;
+  bottom: 34%;
+  display: block;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(var(--iso-line), 0.30) 0 7px,
+    transparent 7px 19px
+  );
+}
+
+/* 卡片右边那块"专属插画"的位置 */
+.pc-art {
+  position: absolute;
+  right: 6%;
+  top: 18%;
+  bottom: 18%;
+  width: 26%;
+  display: block;
+  border-radius: 10px;
+  background: rgba(var(--iso-line), 0.16);
+}
+
+/* 逐件微调，让线框长得更像它对应的真部件 */
+.pc-header .pc-line.w1 { left: 5%; top: 24%; width: 22%; height: 20%; }
+.pc-header .pc-line.w2 { left: 5%; top: 56%; width: 15%; height: 9%; }
+.pc-tile .pc-line.w1 { left: 6%; top: 22%; width: 26%; height: 20%; }
+.pc-tile .pc-line.w2 { left: 6%; top: 54%; width: 18%; height: 10%; }
+.pc-dock .pc-line.w1 { left: 6%; top: 26%; width: 88%; height: 22%; border-radius: 999px; }
+.pc-dock .pc-line.w2 { left: 6%; top: 60%; width: 88%; height: 22%; border-radius: 999px; }
+
+/* 中间那行大字（跟着平面一起斜着，跟参考图一样） */
+.iso-title {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  text-align: center;
+  opacity: 0;
+  animation: title-in 0.62s cubic-bezier(0.2, 1.08, 0.3, 1) 1.5s both;
+}
+
+.iso-title-en {
+  font-family: ui-monospace, Consolas, "Courier New", monospace;
+  font-size: clamp(30px, 6.4vw, 76px);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #fff4d6;
+  text-shadow: 0 0 30px rgba(255, 222, 140, 0.55), 0 0 90px rgba(255, 200, 90, 0.28);
+}
+
+.iso-title-cn {
+  margin-top: 12px;
+  font-size: clamp(12px, 1.8vw, 17px);
+  letter-spacing: 0.55em;
+  text-indent: 0.55em;   /* 字间距会在右边多出一截，缩回来才是真居中 */
+  color: #b6c4d8;
+}
+
+@keyframes title-in {
+  from { opacity: 0; transform: translateY(-50%) scale(1.14); }
+  to   { opacity: 1; transform: translateY(-50%) scale(1); }
+}
+
+/* 手机：屏幕又窄又长，视角得收敛一点，不然构图会被屏幕边切掉。
+   这几个数字是拿尺子量出来的：把各种角度和缩放组合都算一遍，
+   挑一个"能完整装进 360x640 和 390x780 屏幕、又尽量占满"的组合 */
+@media (max-width: 720px) {
+  .iso { transform: translate(-50%, -52%) rotateX(54deg) rotateZ(-10deg) scale(0.66); }
+  .intro.is-cam .iso { transform: translate(-50%, -50%) rotateX(0deg) rotateZ(0deg) scale(1); }
+  .intro.is-out .iso { transform: translate(-50%, -50%) rotateX(0deg) rotateZ(0deg) scale(1.05); }
+
+  .hud-tl, .hud-tr { top: 14px; font-size: 10px; }
+  .hud-tl { left: 16px; }
+  .hud-tr { right: 16px; }
+  .hud-lines { left: 16px; top: 50px; gap: 6px; font-size: 12px; }
+  .hud-line.l3 { font-size: 10.5px; }
+  .hud-skip { left: 16px; bottom: 18px; font-size: 10px; }
+
+  .pc { border-radius: 9px; border-width: 1.2px; }
+  .pc-tag { top: -17px; padding: 1px 6px; font-size: 9.5px; letter-spacing: 1px; }
+  .iso-title-cn { letter-spacing: 0.4em; text-indent: 0.4em; }
+}
+
+/* 入场动画期间把真界面藏起来：它得先渲染（JS 才量得到位置），但不能让人看见 */
+.main.is-prehide { opacity: 0; }
 
 /* ============================================================
    拍一拍特效（每个群一套）

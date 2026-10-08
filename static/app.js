@@ -12,6 +12,23 @@ const HALL_STYLE = {
   "音乐群": { key: "music", icon: "🎵", desc: "分享最近在听的歌" },
 };
 
+// 入场动画里那几张卡片飞进来的方向：[横向, 纵向, 旋转角度]
+// 数字是"自己大小的百分之几"，比如 -170 就是往左挪出 1.7 个自己那么远。
+// 六个方向错开，看着才热闹，不会齐刷刷从一边来
+const TILE_DIR = [
+  [150, -170, -9],
+  [200, 70, 10],
+  [-160, 190, -7],
+  [90, 210, 9],
+  [-200, -130, 6],
+  [180, -200, -10],
+];
+
+// 系统里开了"减弱动态效果"的人（有些人看动画会头晕），动画一律不播
+function prefersReduced() {
+  return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+}
+
 createApp({
   data() {
     return {
@@ -64,8 +81,21 @@ createApp({
       reads: {},             // 群里每个人读到哪条消息了：{用户名: 消息id}
       soundOn: true,         // 新消息提示音开不开
       night: false,          // 夜间模式开不开（点🌙/☀️切换，选择存进 localStorage）
-      entering: false,       // 登录后的入场动画在不在播
-      enterTimer: null,      // 播完把它关掉的定时器
+
+      // ---------- 入场动画（等距装配） ----------
+      intro: false,      // 动画幕布在不在（true 时整屏盖住）
+      // 真界面"先藏起来"的开关。为什么要有它：动画得先量出真界面每个部件的位置，
+      // 可要是让大厅先亮着，量完再盖上去，中间会闪一下，很难看。
+      // 所以一进来就把它藏起来（但仍然占着位置，量得到），动画盖上来之后再亮。
+      introGate: !!localStorage.getItem("chat_token") && !prefersReduced(),
+      introCam: false,   // 镜头拉平那一段（从斜视角转正）
+      introOut: false,   // 收尾淡出
+      introSkip: false,  // 被点过"跳过"，镜头运动缩短
+      introStep: 0,      // 已经装配好的部件数（HUD 上那行 x/8 用）
+      introTotal: 8,     // 一共几个部件，量完位置才知道准确数字
+      // 量出来的真实位置：线框照着这些数字摆，最后拉平才能严丝合缝
+      introBox: { app: {}, hall: null, sidebar: null, header: null, tiles: [], dock: null },
+      introTimer: null, introTimer2: null, introTimer3: null, introTick: null,
 
       myAvatar: "🐱",        // 我选的头像（一个表情符号）
       // 可选的头像列表。用表情符号当头像最省事：不用上传图片，也不用存图片文件
@@ -88,6 +118,19 @@ createApp({
       // location.origin 就是当前的网址（比如 http://192.168.1.20:8000）
       return location.origin + "/?room=" + (this.currentRoom.invite_code || "");
     },
+
+    // 那块"斜着摊开的桌面"要摆在哪儿、多大：直接照抄量出来的真界面外框，
+    // 这样镜头一转平，它跟真界面就是同一个位置、同一个大小
+    isoStyle() {
+      const a = this.introBox.app;
+      if (!a || !a.width) return {};
+      return {
+        left: a.x + "px",
+        top: a.y + "px",
+        width: a.width + "px",
+        height: a.height + "px",
+      };
+    },
   },
 
   mounted() {
@@ -106,9 +149,10 @@ createApp({
     });
 
     if (this.token) {
-      this.loadRooms();
-      this.connectNotify();     // 连上通知专线，在外面也能收到未读提醒
-      this.enterByInviteLink(); // 如果是别人发的邀请链接，直接进那个群
+      // 一进来就走"进入主界面"的流程：默认打开公开大厅 + 播入场动画
+      this.enterApp();
+    } else {
+      this.introGate = false;   // 没登录，压根没有动画，藏东西的开关要关掉
     }
   },
 
@@ -236,27 +280,201 @@ createApp({
       this.loginName = "";
       this.loginPwd = "";
 
-      // 放完入场动画再干活：动画期间把聊天室盖住，
-      // 等它淡出时数据刚好加载好，看起来就是"动画结束，房间已经在那儿了"
-      this.playEnter();
-      this.loadRooms();
-      this.connectNotify();
-
-      // 如果是点邀请链接进来的，登录完直接进入那个群
-      this.enterByInviteLink();
+      // 进来就播"等距装配"的入场动画，同时把数据拉起来：
+      // 动画演完的时候，大厅已经在那儿等着了
+      this.enterApp();
     },
 
-    // 登录成功后的入场动画：盖住页面播一小段，播完自己消失
-    playEnter() {
-      // 系统里开了"减弱动态效果"的人（有些人看动画会头晕）直接跳过
-      if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-        return;
+    // ---------- 入场动画（等距装配） ----------
+
+    // 进入主界面：默认打开公开大厅 → 量好真界面每个部件的位置 → 播动画
+    async enterApp() {
+      this.connectNotify();   // 通知专线早点连上，在外面也能收未读提醒
+
+      const code = this.codeFromUrl();
+
+      // 整个流程套一层"兜底"：任何一步出错（比如服务器正好断了），
+      // 最后都要把真界面亮出来。宁可没动画，也绝不能白屏
+      try {
+        // 从别人的邀请链接进来的：直接进那个群，不播"大厅装配"的动画
+        if (code) {
+          this.introGate = false;   // 不播动画就不能把界面藏着
+          await this.loadRooms();
+          await this.enterByInviteLink();
+          return;
+        }
+
+        // 先按下"藏起来"的开关（这一句在第一个 await 之前，所以不会闪）
+        this.introGate = !prefersReduced();
+
+        await this.loadRooms();
+
+        // 默认就打开公开大厅
+        await this.openHall();
+
+        if (this.introGate) {
+          await this.$nextTick();   // 等大厅真的画到页面上，才量得到位置
+          this.startIntro();
+        }
+      } catch (err) {
+        this.introGate = false;
+        console.error("进入主界面时出错了：", err);
+      }
+    },
+
+    // 量出真界面里每个"部件"的真实位置和大小。
+    // 线框照着这些数字摆，动画最后拉平时才能和真界面重合
+    measureIntro() {
+      const app = document.querySelector("#app");
+      if (!app) return;
+
+      const base = app.getBoundingClientRect();
+      // 把屏幕坐标换成"相对于界面左上角"的坐标，正好对上那块 3D 桌面
+      const box = (el) => {
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        return {
+          left: r.left - base.left,
+          top: r.top - base.top,
+          width: r.width,
+          height: r.height,
+          right: r.right - base.left,
+          bottom: r.bottom - base.top,
+        };
+      };
+
+      // "header"在真界面里其实是两行字（公开大厅 + 那行说明），
+      // 所以把这两块合起来算成一个大框
+      const t1 = box(document.querySelector(".hall-title"));
+      const t2 = box(document.querySelector(".hall-sub"));
+      let header = t1;
+      if (t1 && t2) {
+        header = {
+          left: Math.min(t1.left, t2.left),
+          top: t1.top,
+          width: Math.max(t1.right, t2.right) - Math.min(t1.left, t2.left),
+          height: t2.bottom - t1.top,
+        };
       }
 
-      this.entering = true;
-      clearTimeout(this.enterTimer);
-      // 1.4 秒：样式里最后那段淡出是 .95s 开始的，这里留够时间让它走完
-      this.enterTimer = setTimeout(() => { this.entering = false; }, 1400);
+      // 大厅的卡片：只留完整露在外面的。露一半的飞进来会看着很怪
+      let tiles = [...document.querySelectorAll(".hall .tile")]
+        .map(box)
+        .filter(Boolean)
+        .filter((t) => t.top >= 0 && t.bottom <= base.height);
+
+      // 手机上一屏可能连两张卡都放不下，那就退一步：取前两张，削成装得下的大小
+      if (tiles.length < 2) {
+        tiles = [...document.querySelectorAll(".hall .tile")].map(box)
+          .filter(Boolean)
+          .slice(0, 2)
+          .map((t) => ({
+            ...t,
+            top: Math.min(t.top, base.height - 60),
+            height: Math.min(t.height, 60),
+          }));
+      }
+
+      // 给每张卡片配个名字当标签用（tile.01、tile.02 ...），
+      // 顺便把"从哪个方向飞、什么时候出场"也算好一起塞进去。
+      // 为什么在这里算：模板里读不到模块外面的常量（Vue 模板只能看见组件自己的数据），
+      // 所以能算的都先算好，模板那边只管用
+      tiles = tiles.map((t, i) => ({
+        ...t,
+        label: "tile." + (i + 1 < 10 ? "0" : "") + (i + 1),
+        dir: TILE_DIR[i % TILE_DIR.length],
+        delay: 560 + i * 95,
+      }));
+
+      this.introTotal = 4 + tiles.length;   // 内容区 + 左栏 + 标题 + 底部两行 + 每张卡片
+      this.introBox = {
+        app: {
+          width: base.width,
+          height: base.height,
+          x: base.left + base.width / 2,
+          y: base.top + base.height / 2,
+        },
+        hall: box(document.querySelector(".hall")),
+        sidebar: box(document.querySelector(".sidebar")),
+        header: header,
+        tiles: tiles,
+        dock: box(document.querySelector(".side-bottom")),
+      };
+    },
+
+    // 算一个线框件该摆在哪、从哪个方向飞进来。
+    // dir 是 [横向, 纵向, 角度]，delay 是它比动画开始晚多少毫秒出场；
+    // 卡片那边的这两个值已经在 measureIntro 里算进 b 里了，所以可以不传
+    pcStyle(b, dir, delay) {
+      if (!b) return { display: "none" };   // 量不到位置（比如手机上被挤没了）就不显示
+      const d = dir || b.dir || [0, 0, 0];
+      const wait = delay === undefined ? (b.delay || 0) : delay;
+      return {
+        left: b.left + "px",
+        top: b.top + "px",
+        width: b.width + "px",
+        height: b.height + "px",
+        "--d": wait + "ms",                 // 飞入的出发时间
+        "--hit": wait + 600 + "ms",         // 落位白闪的时间
+        "--tag": wait + 640 + "ms",         // 小标签出现的时间
+        "--fill": Math.round(wait / 4) + "ms", // 镜头拉平时扫光的先后（错开一点更好看）
+        "--fx": d[0] + "%",
+        "--fy": d[1] + "%",
+        "--fr": d[2] + "deg",
+      };
+    },
+
+    startIntro() {
+      this.measureIntro();
+
+      this.introStep = 0;
+      this.introCam = false;
+      this.introOut = false;
+      this.introSkip = false;
+      this.intro = true;
+
+      // HUD 上那行"正在装配 x/8"跟着部件一个个往上跳
+      clearInterval(this.introTick);
+      this.introTick = setInterval(() => {
+        if (this.introStep < this.introTotal) this.introStep++;
+      }, 210);
+
+      // 线框这一帧已经盖上来了，这时才亮出真界面——被盖着，看不见切换
+      this.$nextTick(() => { this.introGate = false; });
+
+      clearTimeout(this.introTimer);
+      clearTimeout(this.introTimer2);
+      clearTimeout(this.introTimer3);
+      // 部件全落位后：镜头从斜视角拉平（样式里这段 0.9 秒）。
+      // 这一步就是"过渡到真正的聊天窗口"
+      this.introTimer = setTimeout(() => { this.introCam = true; }, 2150);
+      // 拉平刚好到位时才开始淡出——这样交接的瞬间线框和真界面是重合的
+      this.introTimer2 = setTimeout(() => { this.finishIntro(); }, 3100);
+    },
+
+    // 收尾：幕布淡出、定时器清干净
+    finishIntro() {
+      clearInterval(this.introTick);
+      clearTimeout(this.introTimer);
+      clearTimeout(this.introTimer2);
+      this.introStep = this.introTotal;
+      this.introOut = true;
+      this.introTimer3 = setTimeout(() => {
+        this.intro = false;
+        this.introGate = false;
+      }, 460);
+    },
+
+    // 点屏幕跳过：直接跳到最后一帧（镜头快速拉平 + 淡出）
+    skipIntro() {
+      if (!this.intro || this.introOut) return;
+      clearInterval(this.introTick);
+      clearTimeout(this.introTimer);
+      clearTimeout(this.introTimer2);
+      this.introStep = this.introTotal;
+      this.introSkip = true;
+      this.introCam = true;
+      this.introTimer = setTimeout(() => { this.finishIntro(); }, 300);
     },
 
     logout() {
@@ -265,6 +483,18 @@ createApp({
       this.stopTitleFlash();   // 退出登录了，标签页要是还在闪就停下
       localStorage.removeItem("chat_token");
       localStorage.removeItem("chat_name");
+
+      // 入场动画的定时器和开关也一起清掉，免得下次登录时残留状态
+      clearInterval(this.introTick);
+      clearTimeout(this.introTimer);
+      clearTimeout(this.introTimer2);
+      clearTimeout(this.introTimer3);
+      this.intro = false;
+      this.introGate = false;
+      this.introCam = false;
+      this.introOut = false;
+      this.introSkip = false;
+
       this.token = "";
       this.myName = "";
       this.currentRoom = null;
